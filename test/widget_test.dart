@@ -5,8 +5,11 @@ import 'package:faithful_pantry/main.dart';
 void main() {
   testWidgets('The four navigation tabs open their screens',
       (WidgetTester tester) async {
-    await tester.pumpWidget(const FaithfulPantryApp());
-
+    await tester.pumpWidget(
+  const MaterialApp(
+    home: HomeScreen(),
+  ),
+);
     expect(
       find.text('Welcome to Faithful Pantry'),
       findsOneWidget,
