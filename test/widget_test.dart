@@ -3,47 +3,44 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:faithful_pantry/main.dart';
 
 void main() {
-  testWidgets('The four navigation tabs open their screens',
+  testWidgets('The four tabs select their matching pages',
       (WidgetTester tester) async {
     await tester.pumpWidget(
-  const MaterialApp(
-    home: HomeScreen(),
-  ),
-);
-    expect(
-      find.text('Welcome to Faithful Pantry'),
-      findsOneWidget,
+      const MaterialApp(
+        home: HomeScreen(
+          testPages: [
+            Text('Test pantry page'),
+            Text('Test add grocery page'),
+            Text('Test budget page'),
+            Text('Test profile page'),
+          ],
+        ),
+      ),
     );
 
-    await tester.tap(
-      find.widgetWithText(NavigationDestination, 'Scan'),
-    );
-    await tester.pumpAndSettle();
+    expect(find.text('Test pantry page'), findsOneWidget);
 
-    expect(find.text('Add your groceries'), findsOneWidget);
+    Future<void> checkTab(
+      String label,
+      int expectedIndex,
+      String pageText,
+    ) async {
+      await tester.tap(
+        find.widgetWithText(NavigationDestination, label),
+      );
+      await tester.pumpAndSettle();
 
-    await tester.tap(
-      find.widgetWithText(NavigationDestination, 'Budget'),
-    );
-    await tester.pumpAndSettle();
+      expect(find.text(pageText), findsOneWidget);
 
-    expect(find.text('Understand your spending'), findsOneWidget);
+      final navigationBar = tester.widget<NavigationBar>(
+        find.byType(NavigationBar),
+      );
+      expect(navigationBar.selectedIndex, expectedIndex);
+    }
 
-    await tester.tap(
-      find.widgetWithText(NavigationDestination, 'Profile'),
-    );
-    await tester.pumpAndSettle();
-
-    expect(find.text('Your profile'), findsOneWidget);
-
-    await tester.tap(
-      find.widgetWithText(NavigationDestination, 'Home'),
-    );
-    await tester.pumpAndSettle();
-
-    expect(
-      find.text('Welcome to Faithful Pantry'),
-      findsOneWidget,
-    );
+    await checkTab('Scan', 1, 'Test add grocery page');
+    await checkTab('Budget', 2, 'Test budget page');
+    await checkTab('Profile', 3, 'Test profile page');
+    await checkTab('Home', 0, 'Test pantry page');
   });
 }

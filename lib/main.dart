@@ -4,6 +4,8 @@ import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'auth_screen.dart';
+import 'add_grocery_screen.dart';
+import 'pantry_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -58,7 +60,9 @@ class FaithfulPantryApp extends StatelessWidget {
 }
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+  const HomeScreen({super.key, this.testPages});
+
+  final List<Widget>? testPages;
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -75,18 +79,8 @@ class _HomeScreenState extends State<HomeScreen> {
   ];
 
   final List<Widget> pages = const [
-    PantryPage(
-      icon: Icons.kitchen_outlined,
-      heading: 'Welcome to Faithful Pantry',
-      description:
-          'Your pantry and expiring groceries will appear here.',
-    ),
-    PantryPage(
-      icon: Icons.add_shopping_cart,
-      heading: 'Add your groceries',
-      description:
-          'We will build manual grocery entry here first.',
-    ),
+   PantryScreen(),
+  AddGroceryScreen(),
     PantryPage(
       icon: Icons.account_balance_wallet_outlined,
       heading: 'Understand your spending',
@@ -126,7 +120,7 @@ class _HomeScreenState extends State<HomeScreen> {
     ),
   ],
 ),
-      body: pages[selectedTab],
+      body: (widget.testPages ?? pages)[selectedTab],
       bottomNavigationBar: NavigationBar(
         selectedIndex: selectedTab,
         onDestinationSelected: (int index) {
