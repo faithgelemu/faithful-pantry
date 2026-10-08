@@ -129,6 +129,63 @@ class _PantryScreenState extends State<PantryScreen> {
       );
     }
   }
+    Future<void> markGrocery(
+    DocumentSnapshot<Map<String, dynamic>> grocery,
+    String status,
+  ) async {
+    if (status != 'used' && status != 'wasted') return;
+
+    final data = grocery.data();
+    final name = data?['name'] is String
+        ? data!['name'] as String
+        : 'this grocery';
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text('Mark as $status?'),
+        content: Text(
+          'Mark all of $name as $status? '
+          'This entry will leave your active pantry. '
+          'Your purchase history and spending will stay unchanged.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: Text('Mark as $status'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !mounted) return;
+
+    try {
+      await grocery.reference.update({
+        'status': status,
+        'resolvedAt': FieldValue.serverTimestamp(),
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('$name marked as $status.')),
+      );
+    } catch (_) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Unable to update the grocery. Please try again.'),
+        ),
+      );
+    }
+  }
   @override
   Widget build(BuildContext context) {
     if (pantryStream == null) {
@@ -333,6 +390,27 @@ TextButton.icon(
   icon: const Icon(Icons.delete_outline),
   label: const Text('Remove'),
   onPressed: () => removeGrocery(matchingItems[index]),
+),
+Wrap(
+  spacing: 8,
+  children: [
+    TextButton.icon(
+      icon: const Icon(Icons.check_circle_outline),
+      label: const Text('Mark as used'),
+      onPressed: () => markGrocery(
+        matchingItems[index],
+        'used',
+      ),
+    ),
+    TextButton.icon(
+      icon: const Icon(Icons.delete_sweep_outlined),
+      label: const Text('Mark as wasted'),
+      onPressed: () => markGrocery(
+        matchingItems[index],
+        'wasted',
+      ),
+    ),
+  ],
 ),
                                               Text('Quantity: $quantity'),
                                               if (totalPence != null) ...[
