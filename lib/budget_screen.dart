@@ -1,6 +1,7 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+
+import 'models/purchase_record.dart';
+import 'services/pantry_service.dart';
 
 class BudgetScreen extends StatefulWidget {
   const BudgetScreen({super.key});
@@ -10,7 +11,8 @@ class BudgetScreen extends StatefulWidget {
 }
 
 class _BudgetScreenState extends State<BudgetScreen> {
-  Stream<QuerySnapshot<Map<String, dynamic>>>? purchasesStream;
+  final service = PantryService();
+  Stream<List<PurchaseRecord>>? purchasesStream;
 
   late final DateTime currentWeekStart;
   late DateTime weekStart;
@@ -21,8 +23,6 @@ class _BudgetScreenState extends State<BudgetScreen> {
 
     final today = DateTime.now();
 
-    // Monday is weekday 1. Construct calendar dates to avoid
-    // daylight-saving changes affecting the week boundaries.
     currentWeekStart = DateTime(
       today.year,
       today.month,
@@ -30,14 +30,10 @@ class _BudgetScreenState extends State<BudgetScreen> {
     );
     weekStart = currentWeekStart;
 
-    final user = FirebaseAuth.instance.currentUser;
-
-    if (user != null) {
-      purchasesStream = FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.uid)
-          .collection('purchases')
-          .snapshots();
+    try {
+      purchasesStream = service.watchPurchases();
+    } on StateError {
+      purchasesStream = null;
     }
   }
 
@@ -90,7 +86,7 @@ class _BudgetScreenState extends State<BudgetScreen> {
     final startValue = dateValue(weekStart);
     final endValue = dateValue(nextWeekStart);
 
-    return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+    return StreamBuilder<List<PurchaseRecord>>(
       stream: purchasesStream,
       builder: (context, snapshot) {
         if (snapshot.hasError) {
@@ -110,31 +106,28 @@ class _BudgetScreenState extends State<BudgetScreen> {
           return const Center(child: CircularProgressIndicator());
         }
 
-        final purchases = snapshot.data!.docs.where((document) {
-          final data = document.data();
-          final date = data['purchaseDate'];
-          final total = data['totalPricePence'];
+        final purchases = snapshot.data!.where((purchase) {
+          final date = DateTime.tryParse(purchase.purchaseDate);
 
-          if (date is! String || total is! int || total < 0) {
+          if (date == null ||
+              purchase.purchasedQuantity < 1 ||
+              purchase.unitPricePence < 0) {
             return false;
           }
 
-          // YYYY-MM-DD strings sort in calendar order.
-          // Include Monday and exclude the following Monday.
-          return date.compareTo(startValue) >= 0 &&
-              date.compareTo(endValue) < 0;
+          // Include Monday; exclude the following Monday.
+          return purchase.purchaseDate.compareTo(startValue) >= 0 &&
+              purchase.purchaseDate.compareTo(endValue) < 0;
         }).toList();
 
-        purchases.sort((a, b) {
-          final first = a.data()['purchaseDate'] as String;
-          final second = b.data()['purchaseDate'] as String;
-          return second.compareTo(first);
-        });
+        purchases.sort(
+          (a, b) => b.purchaseDate.compareTo(a.purchaseDate),
+        );
 
         final totalPence = purchases.fold<int>(
           0,
-          (runningTotal, document) =>
-    runningTotal + (document.data()['totalPricePence'] as int),
+          (runningTotal, purchase) =>
+              runningTotal + purchase.totalPricePence,
         );
 
         return Center(
@@ -180,7 +173,7 @@ class _BudgetScreenState extends State<BudgetScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text('Total spent this week'),
+                        const Text('Total spent in selected week'),
                         const SizedBox(height: 8),
                         Text(
                           money(totalPence),
@@ -198,35 +191,31 @@ class _BudgetScreenState extends State<BudgetScreen> {
                 ),
                 const SizedBox(height: 12),
                 const Text(
-                  'Based on purchase dates, Monday to Sunday. '
-                  'Used, wasted and removed groceries remain included.',
+                  'Based on purchase dates, Monday to Sunday '
+                  'using local calendar dates. Used, wasted and '
+                  'removed groceries remain included.',
                 ),
                 const SizedBox(height: 24),
                 if (purchases.isEmpty)
                   const Text('No purchases recorded for this week.')
                 else
-                  ...purchases.map((document) {
-                    final data = document.data();
-                    final name = data['name'] is String
-                        ? data['name'] as String
-                        : 'Unnamed item';
-                    final quantity = data['quantity'];
-                    final date = DateTime.tryParse(
-                      data['purchaseDate'] as String,
-                    );
+                  ...purchases.map((purchase) {
+                    final date = DateTime.parse(purchase.purchaseDate);
 
                     return Card(
                       child: ListTile(
                         leading: const Icon(
                           Icons.receipt_long_outlined,
                         ),
-                        title: Text(name),
+                        title: Text(purchase.name),
                         subtitle: Text(
-                          'Quantity: $quantity'
-                          '${date == null ? '' : ' • ${dateLabel(date)}'}',
+                          '${purchase.category}\n'
+                          'Purchased: ${purchase.purchasedQuantity}'
+                          ' • ${dateLabel(date)}',
                         ),
+                        isThreeLine: true,
                         trailing: Text(
-                          money(data['totalPricePence'] as int),
+                          money(purchase.totalPricePence),
                           style: const TextStyle(
                             fontWeight: FontWeight.bold,
                           ),

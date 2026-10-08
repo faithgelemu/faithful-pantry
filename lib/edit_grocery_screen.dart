@@ -1,13 +1,18 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
+import 'models/pantry_item.dart';
+import 'services/pantry_service.dart';
+
 class EditGroceryScreen extends StatefulWidget {
   const EditGroceryScreen({
     super.key,
-    required this.grocery,
-  });
+    this.grocery,
+    this.item,
+  }) : assert(grocery != null || item != null);
 
-  final DocumentSnapshot<Map<String, dynamic>> grocery;
+  final DocumentSnapshot<Map<String, dynamic>>? grocery;
+  final PantryItem? item;
 
   @override
   State<EditGroceryScreen> createState() => _EditGroceryScreenState();
@@ -15,11 +20,25 @@ class EditGroceryScreen extends StatefulWidget {
 
 class _EditGroceryScreenState extends State<EditGroceryScreen> {
   final formKey = GlobalKey<FormState>();
+  final service = PantryService();
 
+  late final PantryItem original;
   late final TextEditingController nameController;
   late final TextEditingController quantityController;
   late final TextEditingController priceController;
 
+  static const categories = [
+    'Fruit and vegetables',
+    'Dairy and eggs',
+    'Meat and fish',
+    'Bread and bakery',
+    'Frozen food',
+    'Cupboard essentials',
+    'Drinks',
+    'Other',
+  ];
+
+  late String category;
   late DateTime purchaseDate;
   DateTime? expiryDate;
 
@@ -30,29 +49,24 @@ class _EditGroceryScreenState extends State<EditGroceryScreen> {
   void initState() {
     super.initState();
 
-    final data = widget.grocery.data() ?? {};
+    original = widget.item ??
+        PantryItem.fromDocument(widget.grocery!);
 
-    nameController = TextEditingController(
-      text: data['name'] is String ? data['name'] as String : '',
-    );
-
+    nameController = TextEditingController(text: original.name);
     quantityController = TextEditingController(
-      text: '${data['quantity'] ?? 1}',
+      text: '${original.purchasedQuantity}',
     );
-
-    final price = data['unitPricePence'];
     priceController = TextEditingController(
-      text: price is num ? (price / 100).toStringAsFixed(2) : '',
+      text: (original.unitPricePence / 100).toStringAsFixed(2),
     );
 
-    purchaseDate = readDate(data['purchaseDate']) ??
-        DateUtils.dateOnly(DateTime.now());
-    expiryDate = readDate(data['expiryDate']);
-  }
+    category = categories.contains(original.category)
+        ? original.category
+        : 'Other';
 
-  DateTime? readDate(Object? value) {
-    if (value is! String) return null;
-    return DateTime.tryParse(value);
+    purchaseDate = DateTime.tryParse(original.purchaseDate) ??
+        DateUtils.dateOnly(DateTime.now());
+    expiryDate = DateTime.tryParse(original.expiryDate);
   }
 
   @override
@@ -94,9 +108,11 @@ class _EditGroceryScreenState extends State<EditGroceryScreen> {
 
   Future<void> chooseDate({required bool isExpiry}) async {
     final today = DateUtils.dateOnly(DateTime.now());
-    var initialDate = isExpiry ? (expiryDate ?? purchaseDate) : purchaseDate;
     final firstDate = isExpiry ? purchaseDate : DateTime(2000);
     final lastDate = isExpiry ? DateTime(2100, 12, 31) : today;
+    var initialDate = isExpiry
+        ? (expiryDate ?? purchaseDate)
+        : purchaseDate;
 
     if (initialDate.isBefore(firstDate)) initialDate = firstDate;
     if (initialDate.isAfter(lastDate)) initialDate = lastDate;
@@ -141,33 +157,32 @@ class _EditGroceryScreenState extends State<EditGroceryScreen> {
     });
 
     try {
-      final quantity = int.parse(quantityController.text.trim());
-      final unitPricePence = priceInPence(priceController.text)!;
+      final purchasedQuantity =
+          int.parse(quantityController.text.trim());
 
-      final pantryReference = widget.grocery.reference;
-      final userReference = pantryReference.parent.parent!;
-      final purchaseReference =
-          userReference.collection('purchases').doc(pantryReference.id);
+      final resolvedQuantity =
+          original.purchasedQuantity - original.currentQuantity;
+      final remaining = purchasedQuantity - resolvedQuantity;
 
-      final changes = <String, dynamic>{
-        'name': nameController.text.trim(),
-        'quantity': quantity,
-        'unitPricePence': unitPricePence,
-        'totalPricePence': quantity * unitPricePence,
-        'purchaseDate': dateValue(purchaseDate),
-        'updatedAt': FieldValue.serverTimestamp(),
-      };
+      final corrections = PantryItem(
+        id: original.id,
+        name: nameController.text.trim(),
+        category: category,
+        purchasedQuantity: purchasedQuantity,
+        currentQuantity: remaining,
+        unitPricePence: priceInPence(priceController.text)!,
+        purchaseDate: dateValue(purchaseDate),
+        expiryDate: dateValue(expiryDate!),
+        status: remaining > 0
+            ? 'active'
+            : original.status == 'active'
+                ? 'used'
+                : original.status,
+      );
 
-      final batch = FirebaseFirestore.instance.batch();
-
-      batch.update(pantryReference, {
-        ...changes,
-        'expiryDate': dateValue(expiryDate!),
-      });
-
-      batch.update(purchaseReference, changes);
-
-      await batch.commit();
+      // The service checks the latest inventory in a transaction
+      // and updates the matching purchase record.
+      await service.editGrocery(corrections);
 
       if (!mounted) return;
       Navigator.of(context).pop(true);
@@ -184,6 +199,18 @@ class _EditGroceryScreenState extends State<EditGroceryScreen> {
             'The database is unavailable. Check your connection.',
           _ => 'Unable to save changes. Please try again.',
         };
+      });
+    } on ArgumentError catch (error) {
+      if (!mounted) return;
+
+      setState(() {
+        errorMessage = error.message?.toString() ?? 'Check your details.';
+      });
+    } on StateError catch (error) {
+      if (!mounted) return;
+
+      setState(() {
+        errorMessage = error.message;
       });
     } catch (_) {
       if (!mounted) return;
@@ -228,8 +255,14 @@ class _EditGroceryScreenState extends State<EditGroceryScreen> {
                     ),
                     const SizedBox(height: 8),
                     const Text(
-                      'Quantity and price describe the original purchase. '
-                      'Corrections also update your spending record.',
+                      'Corrections update the original purchase. '
+                      'Use the pantry actions to record use or waste.',
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      'Remaining when opened: '
+                      '${original.currentQuantity} of '
+                      '${original.purchasedQuantity}',
                     ),
                     const SizedBox(height: 24),
                     TextFormField(
@@ -249,6 +282,29 @@ class _EditGroceryScreenState extends State<EditGroceryScreen> {
                       },
                     ),
                     const SizedBox(height: 16),
+                    DropdownButtonFormField<String>(
+                      initialValue: category,
+                      isExpanded: true,
+                      decoration: const InputDecoration(
+                        labelText: 'Category',
+                        border: OutlineInputBorder(),
+                      ),
+                      items: categories.map((name) {
+                        return DropdownMenuItem(
+                          value: name,
+                          child: Text(name),
+                        );
+                      }).toList(),
+                      onChanged: isSaving
+                          ? null
+                          : (value) {
+                              if (value == null) return;
+                              setState(() {
+                                category = value;
+                              });
+                            },
+                    ),
+                    const SizedBox(height: 16),
                     TextFormField(
                       controller: quantityController,
                       enabled: !isSaving,
@@ -259,11 +315,21 @@ class _EditGroceryScreenState extends State<EditGroceryScreen> {
                       ),
                       validator: (value) {
                         final quantity = int.tryParse(value?.trim() ?? '');
+
                         if (quantity == null ||
                             quantity < 1 ||
                             quantity > 999) {
                           return 'Enter a whole number from 1 to 999.';
                         }
+
+                        final resolved = original.purchasedQuantity -
+                            original.currentQuantity;
+
+                        if (quantity < resolved) {
+                          return 'At least $resolved have already been '
+                              'used or wasted.';
+                        }
+
                         return null;
                       },
                     ),

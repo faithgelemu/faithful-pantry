@@ -1,6 +1,8 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+
+import 'models/pantry_item.dart';
+import 'services/pantry_service.dart';
 
 class AddGroceryScreen extends StatefulWidget {
   const AddGroceryScreen({super.key});
@@ -14,7 +16,20 @@ class _AddGroceryScreenState extends State<AddGroceryScreen> {
   final nameController = TextEditingController();
   final quantityController = TextEditingController(text: '1');
   final priceController = TextEditingController();
+  final service = PantryService();
 
+  static const categories = [
+    'Fruit and vegetables',
+    'Dairy and eggs',
+    'Meat and fish',
+    'Bread and bakery',
+    'Frozen food',
+    'Cupboard essentials',
+    'Drinks',
+    'Other',
+  ];
+
+  String category = 'Other';
   DateTime purchaseDate = DateUtils.dateOnly(DateTime.now());
   DateTime? expiryDate;
   bool isSaving = false;
@@ -34,7 +49,6 @@ class _AddGroceryScreenState extends State<AddGroceryScreen> {
     return '$day/$month/${date.year}';
   }
 
-  // Calendar dates are stored without a time zone.
   String dateValue(DateTime date) {
     final month = date.month.toString().padLeft(2, '0');
     final day = date.day.toString().padLeft(2, '0');
@@ -93,15 +107,6 @@ class _AddGroceryScreenState extends State<AddGroceryScreen> {
       return;
     }
 
-    final user = FirebaseAuth.instance.currentUser;
-
-    if (user == null) {
-      setState(() {
-        errorMessage = 'Please log in before adding groceries.';
-      });
-      return;
-    }
-
     FocusScope.of(context).unfocus();
 
     setState(() {
@@ -110,39 +115,22 @@ class _AddGroceryScreenState extends State<AddGroceryScreen> {
     });
 
     try {
-      final database = FirebaseFirestore.instance;
-      final userDocument = database.collection('users').doc(user.uid);
-      final pantryDocument = userDocument.collection('pantry').doc();
-      final purchaseDocument =
-          userDocument.collection('purchases').doc(pantryDocument.id);
-
       final quantity = int.parse(quantityController.text.trim());
-      final unitPricePence = priceInPence(priceController.text)!;
 
-      final data = <String, dynamic>{
-        'name': nameController.text.trim(),
-        'quantity': quantity,
-        'unitPricePence': unitPricePence,
-        'totalPricePence': quantity * unitPricePence,
-        'purchaseDate': dateValue(purchaseDate),
-        'createdAt': FieldValue.serverTimestamp(),
-      };
+      final item = PantryItem(
+        id: '',
+        name: nameController.text.trim(),
+        category: category,
+        purchasedQuantity: quantity,
+        currentQuantity: quantity,
+        unitPricePence: priceInPence(priceController.text)!,
+        purchaseDate: dateValue(purchaseDate),
+        expiryDate: dateValue(expiryDate!),
+        status: 'active',
+      );
 
-      // Save both records together, or neither if the request fails.
-      final batch = database.batch();
-
-      batch.set(pantryDocument, {
-        ...data,
-        'expiryDate': dateValue(expiryDate!),
-        'status': 'active',
-      });
-
-      batch.set(purchaseDocument, {
-        ...data,
-        'pantryItemId': pantryDocument.id,
-      });
-
-      await batch.commit();
+      // The service assigns an ID and saves both records together.
+      await service.addGrocery(item);
 
       if (!mounted) return;
 
@@ -152,6 +140,7 @@ class _AddGroceryScreenState extends State<AddGroceryScreen> {
       priceController.clear();
 
       setState(() {
+        category = 'Other';
         purchaseDate = DateUtils.dateOnly(DateTime.now());
         expiryDate = null;
       });
@@ -170,6 +159,18 @@ class _AddGroceryScreenState extends State<AddGroceryScreen> {
             'The database is unavailable. Check your connection.',
           _ => 'Unable to save your grocery. Please try again.',
         };
+      });
+    } on ArgumentError catch (error) {
+      if (!mounted) return;
+
+      setState(() {
+        errorMessage = error.message?.toString() ?? 'Check your details.';
+      });
+    } on StateError catch (error) {
+      if (!mounted) return;
+
+      setState(() {
+        errorMessage = error.message;
       });
     } catch (_) {
       if (!mounted) return;
@@ -228,12 +229,35 @@ class _AddGroceryScreenState extends State<AddGroceryScreen> {
                   },
                 ),
                 const SizedBox(height: 16),
+                DropdownButtonFormField<String>(
+                  initialValue: category,
+                  isExpanded: true,
+                  decoration: const InputDecoration(
+                    labelText: 'Category',
+                    border: OutlineInputBorder(),
+                  ),
+                  items: categories.map((name) {
+                    return DropdownMenuItem(
+                      value: name,
+                      child: Text(name),
+                    );
+                  }).toList(),
+                  onChanged: isSaving
+                      ? null
+                      : (value) {
+                          if (value == null) return;
+                          setState(() {
+                            category = value;
+                          });
+                        },
+                ),
+                const SizedBox(height: 16),
                 TextFormField(
                   controller: quantityController,
                   enabled: !isSaving,
                   keyboardType: TextInputType.number,
                   decoration: const InputDecoration(
-                    labelText: 'Quantity',
+                    labelText: 'Quantity purchased',
                     helperText: 'Number of items or packs purchased',
                     border: OutlineInputBorder(),
                   ),
