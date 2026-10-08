@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'edit_grocery_screen.dart';
 
 class PantryScreen extends StatefulWidget {
   const PantryScreen({super.key});
@@ -79,7 +80,55 @@ class _PantryScreenState extends State<PantryScreen> {
 
     return Colors.green.shade800;
   }
+  Future<void> removeGrocery(
+    DocumentSnapshot<Map<String, dynamic>> grocery,
+  ) async {
+    final data = grocery.data();
+    final name = data?['name'] is String
+        ? data!['name'] as String
+        : 'this grocery';
 
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Remove grocery?'),
+        content: Text(
+          'Remove $name from your pantry? '
+          'Its purchase record will remain in your spending history.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Remove'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !mounted) return;
+
+    try {
+      await grocery.reference.delete();
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('$name removed from your pantry.')),
+      );
+    } catch (_) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Unable to remove the grocery. Please try again.'),
+        ),
+      );
+    }
+  }
   @override
   Widget build(BuildContext context) {
     if (pantryStream == null) {
@@ -259,6 +308,32 @@ class _PantryScreenState extends State<PantryScreen> {
                                                 ),
                                               ),
                                               const SizedBox(height: 6),
+                                              TextButton.icon(
+  icon: const Icon(Icons.edit_outlined),
+  label: const Text('Edit'),
+  onPressed: () async {
+    final saved = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) => EditGroceryScreen(
+          grocery: matchingItems[index],
+        ),
+      ),
+    );
+
+    if (!context.mounted || saved != true) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Grocery updated.'),
+      ),
+    );
+  },
+),
+TextButton.icon(
+  icon: const Icon(Icons.delete_outline),
+  label: const Text('Remove'),
+  onPressed: () => removeGrocery(matchingItems[index]),
+),
                                               Text('Quantity: $quantity'),
                                               if (totalPence != null) ...[
                                                 const SizedBox(height: 4),
