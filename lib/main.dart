@@ -6,6 +6,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'auth_screen.dart';
 import 'add_grocery_screen.dart';
 import 'pantry_screen.dart';
+import 'budget_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -81,12 +82,7 @@ class _HomeScreenState extends State<HomeScreen> {
   final List<Widget> pages = const [
    PantryScreen(),
   AddGroceryScreen(),
-    PantryPage(
-      icon: Icons.account_balance_wallet_outlined,
-      heading: 'Understand your spending',
-      description:
-          'Your weekly spending and budget will appear here.',
-    ),
+    BudgetScreen(),
     PantryPage(
       icon: Icons.person_outline,
       heading: 'Your profile',
