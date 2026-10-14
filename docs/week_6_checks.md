@@ -93,3 +93,30 @@ The current automated suite does not test all database workflows.
 Keep the core workflow simple and prioritise deadlines.
 Barcode scanning remains optional and may be dropped if difficult.
 AI receipt scanning, maps, donation and background push are deferred.
+
+## Spending update on 14 October 2026
+
+SpendingUtils now provides shared weekly selection, weekly totals,
+seven daily totals and remaining-budget arithmetic.
+
+All 11 spending utility tests passed, covering known totals,
+Monday/Sunday boundaries, year boundaries, empty weeks, invalid
+records, zero-price purchases and overspending.
+
+Budget now uses SpendingUtils and displays Monday–Sunday daily totals.
+
+Manual check:
+- Added 2 items at £0.50 each, purchased on Tuesday, 13 October.
+- Tuesday's amount and the weekly total both increased by £1.00.
+- Marked both items used.
+- Daily and weekly spending remained unchanged.
+
+Latest checks:
+- flutter analyze: No issues found.
+- flutter test: All 19 tests passed
+  (11 spending, 7 expiry and 1 navigation).
+
+The earlier eight-test result records the expiry checkpoint.
+Daily breakdown and shared calculation tests are now complete.
+Saved weekly budgets, remaining-budget display and Home spending
+summaries are still outstanding, along with the other pending checks.

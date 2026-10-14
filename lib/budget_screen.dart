@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'models/purchase_record.dart';
 import 'services/pantry_service.dart';
+import 'utils/spending_utils.dart';
 
 class BudgetScreen extends StatefulWidget {
   const BudgetScreen({super.key});
@@ -17,17 +18,21 @@ class _BudgetScreenState extends State<BudgetScreen> {
   late final DateTime currentWeekStart;
   late DateTime weekStart;
 
+  static const dayNames = [
+    'Monday',
+    'Tuesday',
+    'Wednesday',
+    'Thursday',
+    'Friday',
+    'Saturday',
+    'Sunday',
+  ];
+
   @override
   void initState() {
     super.initState();
 
-    final today = DateTime.now();
-
-    currentWeekStart = DateTime(
-      today.year,
-      today.month,
-      today.day - (today.weekday - 1),
-    );
+    currentWeekStart = SpendingUtils.startOfWeek(DateTime.now());
     weekStart = currentWeekStart;
 
     try {
@@ -35,12 +40,6 @@ class _BudgetScreenState extends State<BudgetScreen> {
     } on StateError {
       purchasesStream = null;
     }
-  }
-
-  String dateValue(DateTime date) {
-    final month = date.month.toString().padLeft(2, '0');
-    final day = date.day.toString().padLeft(2, '0');
-    return '${date.year}-$month-$day';
   }
 
   String dateLabel(DateTime date) {
@@ -71,20 +70,11 @@ class _BudgetScreenState extends State<BudgetScreen> {
       );
     }
 
-    final nextWeekStart = DateTime(
-      weekStart.year,
-      weekStart.month,
-      weekStart.day + 7,
-    );
-
     final weekEnd = DateTime(
       weekStart.year,
       weekStart.month,
       weekStart.day + 6,
     );
-
-    final startValue = dateValue(weekStart);
-    final endValue = dateValue(nextWeekStart);
 
     return StreamBuilder<List<PurchaseRecord>>(
       stream: purchasesStream,
@@ -106,28 +96,21 @@ class _BudgetScreenState extends State<BudgetScreen> {
           return const Center(child: CircularProgressIndicator());
         }
 
-        final purchases = snapshot.data!.where((purchase) {
-          final date = DateTime.tryParse(purchase.purchaseDate);
+        final allPurchases = snapshot.data!;
 
-          if (date == null ||
-              purchase.purchasedQuantity < 1 ||
-              purchase.unitPricePence < 0) {
-            return false;
-          }
-
-          // Include Monday; exclude the following Monday.
-          return purchase.purchaseDate.compareTo(startValue) >= 0 &&
-              purchase.purchaseDate.compareTo(endValue) < 0;
-        }).toList();
-
-        purchases.sort(
-          (a, b) => b.purchaseDate.compareTo(a.purchaseDate),
+        final purchases = SpendingUtils.purchasesForWeek(
+          allPurchases,
+          weekStart,
         );
 
-        final totalPence = purchases.fold<int>(
-          0,
-          (runningTotal, purchase) =>
-              runningTotal + purchase.totalPricePence,
+        final totalPence = SpendingUtils.weeklyTotalPence(
+          allPurchases,
+          weekStart,
+        );
+
+        final dailyTotals = SpendingUtils.dailyTotalsPence(
+          allPurchases,
+          weekStart,
         );
 
         return Center(
@@ -196,6 +179,38 @@ class _BudgetScreenState extends State<BudgetScreen> {
                   'removed groceries remain included.',
                 ),
                 const SizedBox(height: 24),
+                const Text(
+                  'Daily breakdown',
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                ...dailyTotals.entries.map((entry) {
+                  final date = DateTime.parse(entry.key);
+
+                  return ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: Text(dayNames[date.weekday - 1]),
+                    subtitle: Text(dateLabel(date)),
+                    trailing: Text(
+                      money(entry.value),
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  );
+                }),
+                const SizedBox(height: 24),
+                const Text(
+                  'Purchases',
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 8),
                 if (purchases.isEmpty)
                   const Text('No purchases recorded for this week.')
                 else
