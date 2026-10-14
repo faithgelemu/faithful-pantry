@@ -5,6 +5,7 @@ import 'services/pantry_service.dart';
 import 'services/settings_service.dart';
 import 'utils/spending_utils.dart';
 import 'weekly_budget_screen.dart';
+import 'utils/day_refresh_mixin.dart';
 
 class BudgetScreen extends StatefulWidget {
   const BudgetScreen({super.key});
@@ -13,14 +14,16 @@ class BudgetScreen extends StatefulWidget {
   State<BudgetScreen> createState() => _BudgetScreenState();
 }
 
-class _BudgetScreenState extends State<BudgetScreen> {
+class _BudgetScreenState extends State<BudgetScreen> 
+  with DayRefreshMixin<BudgetScreen> {
   final service = PantryService();
   final settingsService = SettingsService();
 
   Stream<List<PurchaseRecord>>? purchasesStream;
   Stream<int?>? budgetStream;
 
-  late final DateTime currentWeekStart;
+  DateTime get currentWeekStart =>
+    SpendingUtils.startOfWeek(DateTime.now());
   late DateTime weekStart;
 
   bool isEditingBudget = false;
@@ -39,7 +42,6 @@ class _BudgetScreenState extends State<BudgetScreen> {
   void initState() {
     super.initState();
 
-    currentWeekStart = SpendingUtils.startOfWeek(DateTime.now());
     weekStart = currentWeekStart;
 
     try {
@@ -50,6 +52,18 @@ class _BudgetScreenState extends State<BudgetScreen> {
       budgetStream = null;
     }
   }
+
+@override
+void onCalendarDayChanged(
+  DateTime previousDay,
+  DateTime currentDay,
+) {
+  final previousWeek = SpendingUtils.startOfWeek(previousDay);
+
+  if (weekStart == previousWeek) {
+    weekStart = SpendingUtils.startOfWeek(currentDay);
+  }
+}
 
   String dateLabel(DateTime date) {
     final day = date.day.toString().padLeft(2, '0');

@@ -4,6 +4,8 @@ import 'edit_grocery_screen.dart';
 import 'models/pantry_item.dart';
 import 'services/pantry_service.dart';
 import 'utils/expiry_utils.dart';
+import 'widgets/weekly_spending_summary.dart';
+import 'utils/day_refresh_mixin.dart';
 
 class PantryScreen extends StatefulWidget {
   const PantryScreen({super.key});
@@ -12,7 +14,8 @@ class PantryScreen extends StatefulWidget {
   State<PantryScreen> createState() => _PantryScreenState();
 }
 
-class _PantryScreenState extends State<PantryScreen> {
+class _PantryScreenState extends State<PantryScreen> 
+  with DayRefreshMixin<PantryScreen>{
   final searchController = TextEditingController();
   final service = PantryService();
 
@@ -353,6 +356,8 @@ class _PantryScreenState extends State<PantryScreen> {
             child: ListView(
               padding: const EdgeInsets.all(24),
               children: [
+                const WeeklySpendingSummary(),
+                const SizedBox(height: 24),
                 const Text(
                   'My Pantry',
                   style: TextStyle(

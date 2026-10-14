@@ -149,3 +149,53 @@ Latest checks:
 Saved budgets and the Budget remaining/overspending display are
 now implemented. Home spending summaries and other pending
 Week 6 checks remain outstanding.
+
+## Home summary and repeated-action checks
+
+Home now displays current-week spending, the saved weekly limit,
+and the remaining or over-budget amount.
+
+Manual checks passed:
+- Home and Budget showed identical current-week values.
+- Search and category filters worked with expiry groups.
+- Clearing filters restored active items.
+- Pantry filters did not change the spending summary.
+
+Repeated-action check:
+- Created a zero-price item with quantity 2.
+- Temporarily submitted the same use action twice with one action ID.
+- Remaining quantity became 1, confirming subtraction happened once.
+- Removed the temporary test code.
+- A new action with a new ID used the final unit.
+- The item disappeared from the active pantry.
+
+This verifies sequential retries with the same action ID.
+Simultaneous requests have not yet been explicitly tested.
+
+## Calendar-day refresh
+
+DayRefreshMixin is connected to the pantry, Home spending summary
+and Budget. It checks the date once a minute and when the app resumes.
+
+Four automated tests passed:
+- No refresh for time changes within the same calendar day.
+- One refresh when crossing midnight.
+- Immediate date check when resuming.
+- Timer cancellation when the screen closes.
+
+Budget advances to the new week if the current week was selected.
+Historical week selections are preserved by the implementation;
+this specific rollover behaviour still needs a dedicated test.
+
+Browser background timers may be delayed. Real-device background
+and overnight behaviour remain browser-refinement checks.
+
+## Latest verification
+
+- flutter analyze: No issues found.
+- flutter test: All 23 tests passed.
+- Test suite: 11 spending, 7 expiry, 4 day-refresh and 1 navigation.
+
+The planned Week 6 features are implemented and the checks above
+have passed. Remaining verification includes simultaneous inventory
+requests and dedicated Budget week-rollover checks.
