@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'edit_grocery_screen.dart';
 import 'models/pantry_item.dart';
 import 'services/pantry_service.dart';
+import 'utils/expiry_utils.dart';
 
 class PantryScreen extends StatefulWidget {
   const PantryScreen({super.key});
@@ -45,24 +46,19 @@ class _PantryScreenState extends State<PantryScreen> {
     );
   }
 
-  int daysUntil(DateTime date) {
-    final today = DateTime.now();
-    final todayUtc = DateTime.utc(today.year, today.month, today.day);
-    final expiryUtc = DateTime.utc(date.year, date.month, date.day);
-
-    return expiryUtc.difference(todayUtc).inDays;
-  }
-
   String dateLabel(DateTime date) {
     final day = date.day.toString().padLeft(2, '0');
     final month = date.month.toString().padLeft(2, '0');
     return '$day/$month/${date.year}';
   }
 
-  String expiryLabel(DateTime? date) {
-    if (date == null) return 'Expiry date unavailable';
+  String expiryLabel(String value, DateTime today) {
+    final date = ExpiryUtils.parseDate(value);
+    final days = ExpiryUtils.daysUntil(value, today: today);
 
-    final days = daysUntil(date);
+    if (date == null || days == null) {
+      return 'Expiry date unavailable';
+    }
 
     if (days < 0) return 'Expired ${dateLabel(date)}';
     if (days == 0) return 'Expires today';
@@ -71,17 +67,14 @@ class _PantryScreenState extends State<PantryScreen> {
     return 'Expires in $days days • ${dateLabel(date)}';
   }
 
-  Color expiryColor(DateTime? date) {
-    if (date == null) {
-      return Theme.of(context).colorScheme.onSurfaceVariant;
-    }
-
-    final days = daysUntil(date);
-
-    if (days < 0) return Theme.of(context).colorScheme.error;
-    if (days <= 3) return Colors.orange.shade800;
-
-    return Colors.green.shade800;
+  Color expiryColor(String value, DateTime today) {
+    return switch (ExpiryUtils.statusFor(value, today: today)) {
+      ExpiryStatus.expired => Theme.of(context).colorScheme.error,
+      ExpiryStatus.expiringSoon => Colors.orange.shade800,
+      ExpiryStatus.later => Colors.green.shade800,
+      ExpiryStatus.unknown =>
+        Theme.of(context).colorScheme.onSurfaceVariant,
+    };
   }
 
   Future<void> editGrocery(PantryItem item) async {
@@ -198,8 +191,7 @@ class _PantryScreenState extends State<PantryScreen> {
     }
   }
 
-  Widget groceryCard(PantryItem item) {
-    final expiry = DateTime.tryParse(item.expiryDate);
+  Widget groceryCard(PantryItem item, DateTime today) {
     final purchaseTotal = item.purchasedQuantity * item.unitPricePence;
 
     return Card(
@@ -227,9 +219,9 @@ class _PantryScreenState extends State<PantryScreen> {
             ),
             const SizedBox(height: 8),
             Text(
-              expiryLabel(expiry),
+              expiryLabel(item.expiryDate, today),
               style: TextStyle(
-                color: expiryColor(expiry),
+                color: expiryColor(item.expiryDate, today),
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -267,6 +259,32 @@ class _PantryScreenState extends State<PantryScreen> {
     );
   }
 
+  List<Widget> expirySection(
+    String title,
+    List<PantryItem> items,
+    DateTime today, {
+    String? emptyMessage,
+  }) {
+    if (items.isEmpty && emptyMessage == null) return [];
+
+    return [
+      Padding(
+        padding: const EdgeInsets.only(top: 12, bottom: 12),
+        child: Text(
+          '$title (${items.length})',
+          style: const TextStyle(
+            fontSize: 22,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ),
+      if (items.isEmpty)
+        Text(emptyMessage!)
+      else
+        ...items.map((item) => groceryCard(item, today)),
+    ];
+  }
+
   @override
   Widget build(BuildContext context) {
     if (pantryStream == null) {
@@ -295,6 +313,7 @@ class _PantryScreenState extends State<PantryScreen> {
           return const Center(child: CircularProgressIndicator());
         }
 
+        final today = DateTime.now();
         final items = snapshot.data!
             .where((item) => item.isActive)
             .toList();
@@ -310,12 +329,23 @@ class _PantryScreenState extends State<PantryScreen> {
         final query = searchQuery.trim().toLowerCase();
 
         final matchingItems = items.where((item) {
-          final matchesName = item.name.toLowerCase().contains(query);
-          final matchesCategory = selectedCategory == 'All categories' ||
-              item.category == selectedCategory;
-
-          return matchesName && matchesCategory;
+          return item.name.toLowerCase().contains(query) &&
+              (selectedCategory == 'All categories' ||
+                  item.category == selectedCategory);
         }).toList();
+
+        final groups = <ExpiryStatus, List<PantryItem>>{
+          for (final status in ExpiryStatus.values)
+            status: <PantryItem>[],
+        };
+
+        for (final item in matchingItems) {
+          final status = ExpiryUtils.statusFor(
+            item.expiryDate,
+            today: today,
+          );
+          groups[status]!.add(item);
+        }
 
         return Center(
           child: ConstrainedBox(
@@ -331,9 +361,12 @@ class _PantryScreenState extends State<PantryScreen> {
                   ),
                 ),
                 const SizedBox(height: 8),
-                Text(
-                  '${items.length} active grocery entries '
-                  '• Soonest expiry first',
+                Text('${items.length} active grocery entries'),
+                const SizedBox(height: 8),
+                const Text(
+                  'Expiring Soon includes today and the next '
+                  '${ExpiryUtils.soonThresholdDays} days. '
+                  'Items within each group are ordered by expiry.',
                 ),
                 const SizedBox(height: 16),
                 TextField(
@@ -387,11 +420,8 @@ class _PantryScreenState extends State<PantryScreen> {
                   'Date alerts are reminders, not a judgement '
                   'that food is safe to eat.',
                 ),
-                const SizedBox(height: 20),
-                if (isBusy) ...[
-                  const LinearProgressIndicator(),
-                  const SizedBox(height: 12),
-                ],
+                const SizedBox(height: 12),
+                if (isBusy) const LinearProgressIndicator(),
                 if (items.isEmpty)
                   const Text(
                     'Your pantry is empty.\n'
@@ -399,8 +429,33 @@ class _PantryScreenState extends State<PantryScreen> {
                   )
                 else if (matchingItems.isEmpty)
                   const Text('No groceries match your search and category.')
-                else
-                  ...matchingItems.map(groceryCard),
+                else ...[
+                  const Text(
+                    'The groups below reflect your search and category.',
+                  ),
+                  ...expirySection(
+                    'Expired',
+                    groups[ExpiryStatus.expired]!,
+                    today,
+                  ),
+                  ...expirySection(
+                    'Expiring Soon',
+                    groups[ExpiryStatus.expiringSoon]!,
+                    today,
+                    emptyMessage:
+                        'No matching groceries expire within three days.',
+                  ),
+                  ...expirySection(
+                    'Later',
+                    groups[ExpiryStatus.later]!,
+                    today,
+                  ),
+                  ...expirySection(
+                    'Date unavailable',
+                    groups[ExpiryStatus.unknown]!,
+                    today,
+                  ),
+                ],
               ],
             ),
           ),
