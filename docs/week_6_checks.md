@@ -120,3 +120,32 @@ The earlier eight-test result records the expiry checkpoint.
 Daily breakdown and shared calculation tests are now complete.
 Saved weekly budgets, remaining-budget display and Home spending
 summaries are still outstanding, along with the other pending checks.
+
+## Saved weekly budget update
+
+SettingsService stores each user's reusable weekly limit at:
+users/{uid}/settings/preferences
+
+WeeklyBudgetScreen validates the amount and saves integer pence.
+Budget displays an unset state, the saved limit, remaining budget,
+or the amount over budget.
+
+Manual checks passed:
+- Saved £30.00 with £1.00 spending: £29.00 remaining.
+- Refreshed Chrome: the limit and remaining amount persisted.
+- Changed the limit to £0.50: £0.50 over budget.
+- Spending remained £1.00 when the limit changed.
+- Negative budget input was rejected.
+- Restored £30.00: £29.00 remaining.
+- Switched accounts: the other account had no budget set.
+
+Earlier weeks are compared with the current reusable limit.
+Historical weekly budget values are not stored.
+
+Latest checks:
+- flutter analyze: No issues found.
+- flutter test: All 19 tests passed.
+
+Saved budgets and the Budget remaining/overspending display are
+now implemented. Home spending summaries and other pending
+Week 6 checks remain outstanding.

@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 
 import 'models/purchase_record.dart';
 import 'services/pantry_service.dart';
+import 'services/settings_service.dart';
 import 'utils/spending_utils.dart';
+import 'weekly_budget_screen.dart';
 
 class BudgetScreen extends StatefulWidget {
   const BudgetScreen({super.key});
@@ -13,10 +15,15 @@ class BudgetScreen extends StatefulWidget {
 
 class _BudgetScreenState extends State<BudgetScreen> {
   final service = PantryService();
+  final settingsService = SettingsService();
+
   Stream<List<PurchaseRecord>>? purchasesStream;
+  Stream<int?>? budgetStream;
 
   late final DateTime currentWeekStart;
   late DateTime weekStart;
+
+  bool isEditingBudget = false;
 
   static const dayNames = [
     'Monday',
@@ -37,8 +44,10 @@ class _BudgetScreenState extends State<BudgetScreen> {
 
     try {
       purchasesStream = service.watchPurchases();
+      budgetStream = settingsService.watchWeeklyBudgetPence();
     } on StateError {
       purchasesStream = null;
+      budgetStream = null;
     }
   }
 
@@ -62,9 +71,129 @@ class _BudgetScreenState extends State<BudgetScreen> {
     });
   }
 
+  Future<void> editBudget(int? currentBudgetPence) async {
+    if (isEditingBudget) return;
+
+    setState(() {
+      isEditingBudget = true;
+    });
+
+    try {
+      final saved = await Navigator.of(context).push<bool>(
+        MaterialPageRoute(
+          builder: (_) => WeeklyBudgetScreen(
+            currentBudgetPence: currentBudgetPence,
+          ),
+        ),
+      );
+
+      if (!mounted || saved != true) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Weekly budget saved.')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          isEditingBudget = false;
+        });
+      }
+    }
+  }
+
+  Widget budgetCard(int totalPence) {
+    return StreamBuilder<int?>(
+      stream: budgetStream,
+      builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          return const Padding(
+            padding: EdgeInsets.symmetric(vertical: 16),
+            child: Text(
+              'Unable to load your budget setting. '
+              'Your spending total is still shown above.',
+            ),
+          );
+        }
+
+        // A null value can mean "unset", so hasData alone
+        // cannot distinguish that from loading.
+        if (snapshot.connectionState == ConnectionState.waiting ||
+            snapshot.connectionState == ConnectionState.none) {
+          return const Padding(
+            padding: EdgeInsets.all(16),
+            child: Center(child: CircularProgressIndicator()),
+          );
+        }
+
+        final budgetPence = snapshot.data;
+        final remainingPence = budgetPence == null
+            ? null
+            : SpendingUtils.remainingBudgetPence(
+                budgetPence: budgetPence,
+                spentPence: totalPence,
+              );
+
+        return Card(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Weekly budget',
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                if (budgetPence == null)
+                  const Text('No weekly budget set.')
+                else ...[
+                  Text('Current weekly limit: ${money(budgetPence)}'),
+                  const SizedBox(height: 8),
+                  Text(
+                    remainingPence! < 0
+                        ? 'Over budget by ${money(-remainingPence)}'
+                        : 'Remaining: ${money(remainingPence)}',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: remainingPence < 0
+                          ? Theme.of(context).colorScheme.error
+                          : Theme.of(context).colorScheme.onSurface,
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 12),
+                const Text(
+                  'This is your current reusable weekly limit. '
+                  'For earlier weeks, the comparison uses this same '
+                  'limit, not a historical budget.',
+                ),
+                const SizedBox(height: 16),
+                OutlinedButton.icon(
+                  onPressed: isEditingBudget
+                      ? null
+                      : () => editBudget(budgetPence),
+                  icon: const Icon(Icons.edit_outlined),
+                  label: Text(
+                    budgetPence == null
+                        ? 'Set weekly budget'
+                        : 'Edit weekly budget',
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    if (purchasesStream == null) {
+    if (purchasesStream == null || budgetStream == null) {
       return const Center(
         child: Text('Please log in to view your spending.'),
       );
@@ -178,6 +307,8 @@ class _BudgetScreenState extends State<BudgetScreen> {
                   'using local calendar dates. Used, wasted and '
                   'removed groceries remain included.',
                 ),
+                const SizedBox(height: 16),
+                budgetCard(totalPence),
                 const SizedBox(height: 24),
                 const Text(
                   'Daily breakdown',
