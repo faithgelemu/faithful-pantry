@@ -38,7 +38,7 @@ void main() {
       expect(navigationBar.selectedIndex, expectedIndex);
     }
 
-    await checkTab('Scan', 1, 'Test add grocery page');
+    await checkTab('Add', 1, 'Test add grocery page');
     await checkTab('Budget', 2, 'Test budget page');
     await checkTab('Profile', 3, 'Test profile page');
     await checkTab('Home', 0, 'Test pantry page');

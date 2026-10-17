@@ -7,6 +7,7 @@ import 'auth_screen.dart';
 import 'add_grocery_screen.dart';
 import 'pantry_screen.dart';
 import 'budget_screen.dart';
+import 'profile_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -74,7 +75,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   final List<String> titles = [
     'Faithful Pantry',
-    'Scan and Add',
+    'Add groceries',
     'Weekly Budget',
     'Profile',
   ];
@@ -83,12 +84,7 @@ class _HomeScreenState extends State<HomeScreen> {
    PantryScreen(),
   AddGroceryScreen(),
     BudgetScreen(),
-    PantryPage(
-      icon: Icons.person_outline,
-      heading: 'Your profile',
-      description:
-          'Your account and settings will appear here.',
-    ),
+  ProfileScreen(),
   ];
 
   @override
@@ -131,8 +127,8 @@ class _HomeScreenState extends State<HomeScreen> {
             label: 'Home',
           ),
           NavigationDestination(
-            icon: Icon(Icons.qr_code_scanner),
-            label: 'Scan',
+          icon: Icon(Icons.add_shopping_cart),
+          label: 'Add',
           ),
           NavigationDestination(
             icon: Icon(Icons.account_balance_wallet_outlined),

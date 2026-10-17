@@ -430,7 +430,7 @@ class _PantryScreenState extends State<PantryScreen>
                 if (items.isEmpty)
                   const Text(
                     'Your pantry is empty.\n'
-                    'Open the Scan tab to add a grocery.',
+                    'Open the Add tab to add a grocery.',
                   )
                 else if (matchingItems.isEmpty)
                   const Text('No groceries match your search and category.')
