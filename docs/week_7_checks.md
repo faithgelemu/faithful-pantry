@@ -40,3 +40,23 @@ the Profile checks above were performed manually.
 - Review loading, error and retry interactions.
 - Reconcile the current Home layout with the proposed app map.
 - Gather and record informal peer feedback where available.
+
+## Usability checks on 17 October 2026
+
+Manual checks in Chrome on Windows:
+
+- At an emulated 390 × 844 viewport, Home, Add, Budget and
+  Profile showed no observed overlapping controls or horizontal
+  scrolling. Vertical scrolling remained available.
+- Keyboard navigation reached the grocery form controls in a
+  sensible order, with visible focus. A grocery was saved using
+  the keyboard.
+- Leaving Edit using the app back arrow discarded an unsaved
+  name change; the original name remained.
+- Chrome's Back button returned from Edit to the pantry.
+- At 200% browser zoom, the four tabs remained readable and
+  usable, with no observed overlap.
+
+These are developer checks, not a formal accessibility audit.
+Device emulation does not replace real-phone testing.
+Browser zoom does not replace testing OS text-size settings.
