@@ -168,11 +168,11 @@ class _PantryScreenState extends State<PantryScreen>
 
       final actionId = service.newActionId();
 
-      await service.resolveQuantity(
-        itemId: item.id,
-        quantity: quantity,
-        action: action,
-        actionId: actionId,
+     await service.resolveQuantity(
+     itemId: item.id,
+     quantity: quantity,
+     action: action,
+      actionId: actionId,
       );
 
       showMessage('$quantity of ${item.name} marked as $action.');

@@ -199,3 +199,48 @@ and overnight behaviour remain browser-refinement checks.
 The planned Week 6 features are implemented and the checks above
 have passed. Remaining verification includes simultaneous inventory
 requests and dedicated Budget week-rollover checks.
+
+## Final Week 6 checks on 17 October 2026
+
+### Concurrent inventory requests
+
+Started two use requests together for one remaining unit,
+using different action IDs.
+
+The first attempt exposed a web error-handling issue: a StateError
+raised inside the transaction callback appeared as NativeError.
+The service now returns an acceptance result from the transaction
+and raises the readable application error outside the callback.
+
+Retest passed:
+- One request succeeded and one was rejected.
+- Firestore showed currentQuantity: 0 and status: used.
+- Temporary concurrency test code was removed from the screen.
+
+This was a manual concurrent-request check, not an automated
+database stress test.
+
+### Budget week rollover
+
+Budget now uses SpendingUtils.weekAfterDayChange.
+
+Five automated tests passed:
+- Current-week selection advances on Monday.
+- An older selected week stays selected.
+- A day change within the same week preserves its Monday.
+- Current-week selection follows after several weeks away.
+- Rollover works across a year boundary.
+
+These test the selection rule. Existing day-refresh tests cover
+the timer and resume checks. Real-browser overnight and background
+behaviour remain part of later browser verification.
+
+### Final verification
+
+- flutter analyze: No issues found.
+- flutter test: All 28 tests passed.
+- Coverage: 11 spending, 7 expiry, 5 Budget rollover,
+  4 day-refresh and 1 navigation test.
+
+The two previously outstanding Week 6 checks are now completed
+within the scope described above.

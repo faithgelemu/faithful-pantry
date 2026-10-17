@@ -58,11 +58,11 @@ void onCalendarDayChanged(
   DateTime previousDay,
   DateTime currentDay,
 ) {
-  final previousWeek = SpendingUtils.startOfWeek(previousDay);
-
-  if (weekStart == previousWeek) {
-    weekStart = SpendingUtils.startOfWeek(currentDay);
-  }
+  weekStart = SpendingUtils.weekAfterDayChange(
+    selectedWeek: weekStart,
+    previousDay: previousDay,
+    currentDay: currentDay,
+  );
 }
 
   String dateLabel(DateTime date) {

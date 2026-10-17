@@ -11,6 +11,21 @@ class SpendingUtils {
     );
   }
 
+    static DateTime weekAfterDayChange({
+    required DateTime selectedWeek,
+    required DateTime previousDay,
+    required DateTime currentDay,
+  }) {
+    final selectedMonday = startOfWeek(selectedWeek);
+    final previousMonday = startOfWeek(previousDay);
+
+    if (selectedMonday == previousMonday) {
+      return startOfWeek(currentDay);
+    }
+
+    return selectedMonday;
+  }
+
   static String dateValue(DateTime date) {
     final month = date.month.toString().padLeft(2, '0');
     final day = date.day.toString().padLeft(2, '0');

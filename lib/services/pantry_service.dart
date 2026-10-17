@@ -210,35 +210,34 @@ class PantryService {
   }
 
   Future<void> resolveQuantity({
-    required String itemId,
-    required int quantity,
-    required String action,
-    required String actionId,
-  }) async {
-    if (quantity < 1 || !['used', 'wasted'].contains(action)) {
-      throw ArgumentError('Choose a valid quantity and action.');
-    }
+  required String itemId,
+  required int quantity,
+  required String action,
+  required String actionId,
+}) async {
+  if (quantity < 1 || !['used', 'wasted'].contains(action)) {
+    throw ArgumentError('Choose a valid quantity and action.');
+  }
 
-    final user = _userDocument;
-    final pantry = user.collection('pantry').doc(itemId);
-    final actionRecord = user.collection('inventoryActions').doc(actionId);
+  final user = _userDocument;
+  final pantry = user.collection('pantry').doc(itemId);
+  final actionRecord = user.collection('inventoryActions').doc(actionId);
 
-    await _database.runTransaction((transaction) async {
+  final accepted = await _database.runTransaction<bool>(
+    (transaction) async {
       final previousAction = await transaction.get(actionRecord);
 
-      // Reusing the same action ID cannot subtract inventory twice.
-      if (previousAction.exists) return;
+      // This action already succeeded, so do not subtract again.
+      if (previousAction.exists) return true;
 
       final snapshot = await transaction.get(pantry);
 
-      if (!snapshot.exists) {
-        throw StateError('This grocery no longer exists.');
-      }
+      if (!snapshot.exists) return false;
 
       final item = PantryItem.fromDocument(snapshot);
 
       if (!item.isActive || quantity > item.currentQuantity) {
-        throw StateError('That quantity is no longer available.');
+        return false;
       }
 
       final remaining = item.currentQuantity - quantity;
@@ -259,7 +258,15 @@ class PantryService {
         'createdAt': FieldValue.serverTimestamp(),
       });
 
-      // Purchase records are deliberately unchanged.
-    });
+      return true;
+    },
+  );
+
+  // Raise the application error outside the transaction callback.
+  if (!accepted) {
+    throw StateError(
+      'This grocery is no longer available in that quantity.',
+    );
   }
+}
 }
