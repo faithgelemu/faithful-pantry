@@ -60,3 +60,16 @@ Manual checks in Chrome on Windows:
 These are developer checks, not a formal accessibility audit.
 Device emulation does not replace real-phone testing.
 Browser zoom does not replace testing OS text-size settings.
+
+## Combined user journey
+
+Added Journey test: Dairy and eggs, quantity 2, unit price £0.50,
+purchase date today and expiry tomorrow.
+
+- Item appeared under Expiring Soon.
+- Using 1 left 1 remaining.
+- Budget retained 2 purchased for £1.00.
+- Today's daily spending included the purchase.
+- Home and Budget weekly totals matched.
+
+Result: passed in desktop Chrome on Windows.

@@ -3,19 +3,28 @@ import 'package:flutter/material.dart';
 import 'edit_grocery_screen.dart';
 import 'models/pantry_item.dart';
 import 'services/pantry_service.dart';
-import 'utils/expiry_utils.dart';
-import 'widgets/weekly_spending_summary.dart';
 import 'utils/day_refresh_mixin.dart';
+import 'utils/expiry_utils.dart';
+
+enum PantryView {
+  inventory,
+  alerts,
+}
 
 class PantryScreen extends StatefulWidget {
-  const PantryScreen({super.key});
+  const PantryScreen({
+    super.key,
+    this.view = PantryView.inventory,
+  });
+
+  final PantryView view;
 
   @override
   State<PantryScreen> createState() => _PantryScreenState();
 }
 
-class _PantryScreenState extends State<PantryScreen> 
-  with DayRefreshMixin<PantryScreen>{
+class _PantryScreenState extends State<PantryScreen>
+    with DayRefreshMixin<PantryScreen> {
   final searchController = TextEditingController();
   final service = PantryService();
 
@@ -24,15 +33,24 @@ class _PantryScreenState extends State<PantryScreen>
   String selectedCategory = 'All categories';
   bool isBusy = false;
 
+  bool get isAlerts => widget.view == PantryView.alerts;
+
   @override
   void initState() {
     super.initState();
+    loadPantry();
+  }
 
+  void loadPantry() {
     try {
       pantryStream = service.watchPantry();
     } on StateError {
       pantryStream = null;
     }
+  }
+
+  void retry() {
+    setState(loadPantry);
   }
 
   @override
@@ -168,11 +186,11 @@ class _PantryScreenState extends State<PantryScreen>
 
       final actionId = service.newActionId();
 
-     await service.resolveQuantity(
-     itemId: item.id,
-     quantity: quantity,
-     action: action,
-      actionId: actionId,
+      await service.resolveQuantity(
+        itemId: item.id,
+        quantity: quantity,
+        action: action,
+        actionId: actionId,
       );
 
       showMessage('$quantity of ${item.name} marked as $action.');
@@ -195,7 +213,7 @@ class _PantryScreenState extends State<PantryScreen>
   }
 
   Widget groceryCard(PantryItem item, DateTime today) {
-    final purchaseTotal = item.purchasedQuantity * item.unitPricePence;
+    final color = expiryColor(item.expiryDate, today);
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
@@ -204,58 +222,97 @@ class _PantryScreenState extends State<PantryScreen>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              item.name,
-              style: const TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 6),
-            Text(item.category),
-            const SizedBox(height: 8),
-            Text('Remaining: ${item.currentQuantity}'),
-            Text('Originally purchased: ${item.purchasedQuantity}'),
-            Text(
-              'Original purchase total: '
-              '£${(purchaseTotal / 100).toStringAsFixed(2)}',
-            ),
-            const SizedBox(height: 8),
-            Text(
-              expiryLabel(item.expiryDate, today),
-              style: TextStyle(
-                color: expiryColor(item.expiryDate, today),
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 8,
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                TextButton.icon(
-                  icon: const Icon(Icons.edit_outlined),
-                  label: const Text('Edit'),
-                  onPressed: isBusy ? null : () => editGrocery(item),
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context)
+                        .colorScheme
+                        .surfaceContainerHighest,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(
+                    isAlerts
+                        ? Icons.schedule_outlined
+                        : Icons.shopping_bag_outlined,
+                    color: color,
+                  ),
                 ),
-                TextButton.icon(
-                  icon: const Icon(Icons.delete_outline),
-                  label: const Text('Remove'),
-                  onPressed: isBusy ? null : () => removeGrocery(item),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        item.name,
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '${item.category} '
+                        '• ${item.currentQuantity} remaining',
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        expiryLabel(item.expiryDate, today),
+                        style: TextStyle(
+                          color: color,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-                TextButton.icon(
-                  icon: const Icon(Icons.check_circle_outline),
-                  label: const Text('Mark as used'),
-                  onPressed:
-                      isBusy ? null : () => markGrocery(item, 'used'),
-                ),
-                TextButton.icon(
-                  icon: const Icon(Icons.delete_sweep_outlined),
-                  label: const Text('Mark as wasted'),
-                  onPressed:
-                      isBusy ? null : () => markGrocery(item, 'wasted'),
-                ),
+                if (!isAlerts)
+                  PopupMenuButton<String>(
+                    tooltip: 'Options for ${item.name}',
+                    enabled: !isBusy,
+                    onSelected: (value) {
+                      if (value == 'edit') {
+                        editGrocery(item);
+                      } else if (value == 'remove') {
+                        removeGrocery(item);
+                      }
+                    },
+                    itemBuilder: (_) => const [
+                      PopupMenuItem(
+                        value: 'edit',
+                        child: Text('Edit'),
+                      ),
+                      PopupMenuItem(
+                        value: 'remove',
+                        child: Text('Remove'),
+                      ),
+                    ],
+                  ),
               ],
             ),
+            if (isAlerts) ...[
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  FilledButton.tonalIcon(
+                    icon: const Icon(Icons.check_circle_outline),
+                    label: const Text('Use it'),
+                    onPressed:
+                        isBusy ? null : () => markGrocery(item, 'used'),
+                  ),
+                  OutlinedButton.icon(
+                    icon: const Icon(Icons.delete_sweep_outlined),
+                    label: const Text('Wasted'),
+                    onPressed:
+                        isBusy ? null : () => markGrocery(item, 'wasted'),
+                  ),
+                ],
+              ),
+            ],
           ],
         ),
       ),
@@ -288,11 +345,64 @@ class _PantryScreenState extends State<PantryScreen>
     ];
   }
 
+  Widget inventoryFilters(List<String> categories) {
+    return Column(
+      children: [
+        TextField(
+          controller: searchController,
+          decoration: InputDecoration(
+            labelText: 'Search your pantry',
+            prefixIcon: const Icon(Icons.search),
+            border: const OutlineInputBorder(),
+            suffixIcon: searchQuery.isEmpty
+                ? null
+                : IconButton(
+                    tooltip: 'Clear search',
+                    icon: const Icon(Icons.close),
+                    onPressed: () {
+                      searchController.clear();
+                      setState(() {
+                        searchQuery = '';
+                      });
+                    },
+                  ),
+          ),
+          onChanged: (value) {
+            setState(() {
+              searchQuery = value;
+            });
+          },
+        ),
+        const SizedBox(height: 12),
+        DropdownButtonFormField<String>(
+          initialValue: selectedCategory,
+          isExpanded: true,
+          decoration: const InputDecoration(
+            labelText: 'Filter by category',
+            border: OutlineInputBorder(),
+          ),
+          items: ['All categories', ...categories].map((category) {
+            return DropdownMenuItem(
+              value: category,
+              child: Text(category),
+            );
+          }).toList(),
+          onChanged: (value) {
+            if (value == null) return;
+            setState(() {
+              selectedCategory = value;
+            });
+          },
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     if (pantryStream == null) {
       return const Center(
-        child: Text('Please log in to view your pantry.'),
+        child: Text('Please log in to view your groceries.'),
       );
     }
 
@@ -300,13 +410,24 @@ class _PantryScreenState extends State<PantryScreen>
       stream: pantryStream,
       builder: (context, snapshot) {
         if (snapshot.hasError) {
-          return const Center(
+          return Center(
             child: Padding(
-              padding: EdgeInsets.all(24),
-              child: Text(
-                'Unable to load your pantry. '
-                'Check your connection and access rules.',
-                textAlign: TextAlign.center,
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text(
+                    'Unable to load groceries. '
+                    'Check your connection and try again.',
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 12),
+                  OutlinedButton.icon(
+                    onPressed: retry,
+                    icon: const Icon(Icons.refresh),
+                    label: const Text('Retry'),
+                  ),
+                ],
               ),
             ),
           );
@@ -317,11 +438,11 @@ class _PantryScreenState extends State<PantryScreen>
         }
 
         final today = DateTime.now();
+
         final items = snapshot.data!
             .where((item) => item.isActive)
-            .toList();
-
-        items.sort((a, b) => a.expiryDate.compareTo(b.expiryDate));
+            .toList()
+          ..sort((a, b) => a.expiryDate.compareTo(b.expiryDate));
 
         final categories = {
           ...items.map((item) => item.category),
@@ -337,18 +458,15 @@ class _PantryScreenState extends State<PantryScreen>
                   item.category == selectedCategory);
         }).toList();
 
-        final groups = <ExpiryStatus, List<PantryItem>>{
-          for (final status in ExpiryStatus.values)
-            status: <PantryItem>[],
-        };
+        final expired = items.where((item) {
+          return ExpiryUtils.statusFor(item.expiryDate, today: today) ==
+              ExpiryStatus.expired;
+        }).toList();
 
-        for (final item in matchingItems) {
-          final status = ExpiryUtils.statusFor(
-            item.expiryDate,
-            today: today,
-          );
-          groups[status]!.add(item);
-        }
+        final soon = items.where((item) {
+          return ExpiryUtils.statusFor(item.expiryDate, today: today) ==
+              ExpiryStatus.expiringSoon;
+        }).toList();
 
         return Center(
           child: ConstrainedBox(
@@ -356,111 +474,62 @@ class _PantryScreenState extends State<PantryScreen>
             child: ListView(
               padding: const EdgeInsets.all(24),
               children: [
-                const WeeklySpendingSummary(),
-                const SizedBox(height: 24),
-                const Text(
-                  'My Pantry',
-                  style: TextStyle(
+                Text(
+                  isAlerts ? 'Expiry Alerts' : 'My Pantry',
+                  style: const TextStyle(
                     fontSize: 26,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
                 const SizedBox(height: 8),
-                Text('${items.length} active grocery entries'),
-                const SizedBox(height: 8),
-                const Text(
-                  'Expiring Soon includes today and the next '
-                  '${ExpiryUtils.soonThresholdDays} days. '
-                  'Items within each group are ordered by expiry.',
+                Text(
+                  isAlerts
+                      ? 'Review dates and record use or waste.'
+                      : '${items.length} active grocery entries'
+                          ' • Soonest expiry first',
                 ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: searchController,
-                  decoration: InputDecoration(
-                    labelText: 'Search your pantry',
-                    prefixIcon: const Icon(Icons.search),
-                    border: const OutlineInputBorder(),
-                    suffixIcon: searchQuery.isEmpty
-                        ? null
-                        : IconButton(
-                            tooltip: 'Clear search',
-                            icon: const Icon(Icons.close),
-                            onPressed: () {
-                              searchController.clear();
-                              setState(() {
-                                searchQuery = '';
-                              });
-                            },
-                          ),
-                  ),
-                  onChanged: (value) {
-                    setState(() {
-                      searchQuery = value;
-                    });
-                  },
-                ),
-                const SizedBox(height: 12),
-                DropdownButtonFormField<String>(
-                  initialValue: selectedCategory,
-                  isExpanded: true,
-                  decoration: const InputDecoration(
-                    labelText: 'Filter by category',
-                    border: OutlineInputBorder(),
-                  ),
-                  items: ['All categories', ...categories].map((category) {
-                    return DropdownMenuItem(
-                      value: category,
-                      child: Text(category),
-                    );
-                  }).toList(),
-                  onChanged: (value) {
-                    if (value == null) return;
-                    setState(() {
-                      selectedCategory = value;
-                    });
-                  },
-                ),
-                const SizedBox(height: 12),
-                const Text(
-                  'Date alerts are reminders, not a judgement '
-                  'that food is safe to eat.',
-                ),
-                const SizedBox(height: 12),
-                if (isBusy) const LinearProgressIndicator(),
+                const SizedBox(height: 20),
+                if (!isAlerts) ...[
+                  inventoryFilters(categories),
+                  const SizedBox(height: 20),
+                ],
+                if (isBusy) ...[
+                  const LinearProgressIndicator(),
+                  const SizedBox(height: 12),
+                ],
                 if (items.isEmpty)
-                  const Text(
-                    'Your pantry is empty.\n'
-                    'Open the Add tab to add a grocery.',
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 24),
+                    child: Text(
+                      'Your pantry is empty.\n'
+                      'Open the Add tab to record a grocery.',
+                      textAlign: TextAlign.center,
+                    ),
                   )
-                else if (matchingItems.isEmpty)
-                  const Text('No groceries match your search and category.')
-                else ...[
+                else if (isAlerts) ...[
                   const Text(
-                    'The groups below reflect your search and category.',
+                    'Expiring Soon includes today and the next '
+                    '${ExpiryUtils.soonThresholdDays} days. '
+                    'Date reminders do not determine food safety.',
                   ),
+                  const SizedBox(height: 12),
                   ...expirySection(
                     'Expired',
-                    groups[ExpiryStatus.expired]!,
+                    expired,
                     today,
                   ),
                   ...expirySection(
                     'Expiring Soon',
-                    groups[ExpiryStatus.expiringSoon]!,
+                    soon,
                     today,
                     emptyMessage:
-                        'No matching groceries expire within three days.',
+                        'No active groceries are approaching expiry '
+                        'within this period.',
                   ),
-                  ...expirySection(
-                    'Later',
-                    groups[ExpiryStatus.later]!,
-                    today,
-                  ),
-                  ...expirySection(
-                    'Date unavailable',
-                    groups[ExpiryStatus.unknown]!,
-                    today,
-                  ),
-                ],
+                ] else if (matchingItems.isEmpty)
+                  const Text('No groceries match your search and category.')
+                else
+                  ...matchingItems.map((item) => groceryCard(item, today)),
               ],
             ),
           ),

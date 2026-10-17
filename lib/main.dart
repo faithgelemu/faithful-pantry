@@ -1,12 +1,13 @@
-import 'package:flutter/material.dart';
-import 'package:firebase_core/firebase_core.dart';
-
-import 'firebase_options.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'auth_screen.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/material.dart';
+
 import 'add_grocery_screen.dart';
-import 'pantry_screen.dart';
+import 'auth_screen.dart';
 import 'budget_screen.dart';
+import 'firebase_options.dart';
+import 'home_dashboard.dart';
+import 'pantry_screen.dart';
 import 'profile_screen.dart';
 
 Future<void> main() async {
@@ -34,35 +35,52 @@ class FaithfulPantryApp extends StatelessWidget {
         useMaterial3: true,
       ),
       home: StreamBuilder<User?>(
-  stream: FirebaseAuth.instance.authStateChanges(),
-  builder: (context, snapshot) {
-    if (snapshot.connectionState == ConnectionState.waiting) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
-    }
+        stream: FirebaseAuth.instance.authStateChanges(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Scaffold(
+              body: Center(child: CircularProgressIndicator()),
+            );
+          }
 
-    if (snapshot.hasError) {
-      return const Scaffold(
-        body: Center(
-          child: Text('Unable to check your login. Please restart the app.'),
-        ),
-      );
-    }
+          if (snapshot.hasError) {
+            return const Scaffold(
+              body: Center(
+                child: Padding(
+                  padding: EdgeInsets.all(24),
+                  child: Text(
+                    'Unable to check your login. '
+                    'Please restart the app.',
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              ),
+            );
+          }
 
-    if (snapshot.hasData) {
-      return const HomeScreen();
-    }
+          final user = snapshot.data;
 
-    return const AuthScreen();
-  },
-),
+          if (user != null) {
+            return HomeScreen(key: ValueKey(user.uid));
+          }
+
+          return const AuthScreen();
+        },
+      ),
     );
   }
 }
 
+enum HomeDetail {
+  pantry,
+  alerts,
+}
+
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key, this.testPages});
+  const HomeScreen({
+    super.key,
+    this.testPages,
+  });
 
   final List<Widget>? testPages;
 
@@ -72,54 +90,149 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int selectedTab = 0;
+  HomeDetail? homeDetail;
 
-  final List<String> titles = [
+  LocalHistoryEntry? detailHistory;
+
+  static const titles = [
     'Faithful Pantry',
     'Add groceries',
     'Weekly Budget',
     'Profile',
   ];
 
-  final List<Widget> pages = const [
-   PantryScreen(),
-  AddGroceryScreen(),
-    BudgetScreen(),
-  ProfileScreen(),
-  ];
+  void openHomeDetail(HomeDetail detail) {
+    if (homeDetail != null) return;
+
+    final route = ModalRoute.of(context);
+    if (route == null) return;
+
+    final entry = LocalHistoryEntry(
+      onRemove: () {
+        detailHistory = null;
+
+        if (!mounted || detailHistory == null && homeDetail == null) {
+  return;
+}
+        setState(() {
+          homeDetail = null;
+        });
+      },
+    );
+
+    detailHistory = entry;
+    route.addLocalHistoryEntry(entry);
+
+    setState(() {
+      homeDetail = detail;
+    });
+  }
+
+  void closeHomeDetail() {
+    detailHistory?.remove();
+  }
+
+  void selectTab(int index) {
+    // Leaving a detail view returns Home to its dashboard.
+    closeHomeDetail();
+
+    setState(() {
+      selectedTab = index;
+    });
+  }
+
+  String get currentTitle {
+    if (selectedTab == 0 && homeDetail != null) {
+      return homeDetail == HomeDetail.pantry
+          ? 'My Pantry'
+          : 'Expiry Alerts';
+    }
+
+    return titles[selectedTab];
+  }
+
+  Widget get currentPage {
+    final testPages = widget.testPages;
+
+    if (testPages != null) {
+      return testPages[selectedTab];
+    }
+
+    switch (selectedTab) {
+      case 1:
+        return const AddGroceryScreen();
+      case 2:
+        return const BudgetScreen();
+      case 3:
+        return const ProfileScreen();
+      default:
+        switch (homeDetail) {
+          case HomeDetail.pantry:
+            return const PantryScreen(
+              key: ValueKey('inventory'),
+              view: PantryView.inventory,
+            );
+          case HomeDetail.alerts:
+            return const PantryScreen(
+              key: ValueKey('alerts'),
+              view: PantryView.alerts,
+            );
+          case null:
+            return HomeDashboard(
+              onOpenPantry: () => openHomeDetail(HomeDetail.pantry),
+              onOpenExpiryAlerts: () =>
+                  openHomeDetail(HomeDetail.alerts),
+            );
+        }
+    }
+  }
+
+    Future<void> logOut() async {
+    try {
+      await FirebaseAuth.instance.signOut();
+
+      if (!mounted) return;
+      closeHomeDetail();
+    } catch (_) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Unable to log out. Please try again.'),
+        ),
+      );
+    }
+  }
+
+  @override
+  void dispose() {
+    detailHistory = null;
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-  title: Text(titles[selectedTab]),
-  actions: [
-    IconButton(
-      tooltip: 'Log out',
-      icon: const Icon(Icons.logout),
-      onPressed: () async {
-        try {
-          await FirebaseAuth.instance.signOut();
-        } catch (_) {
-          if (!context.mounted) return;
-
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Unable to log out. Please try again.'),
-            ),
-          );
-        }
-      },
-    ),
-  ],
-),
-      body: (widget.testPages ?? pages)[selectedTab],
+        title: Text(currentTitle),
+        automaticallyImplyLeading: false,
+        leading: homeDetail == null
+            ? null
+            : BackButton(
+                onPressed: closeHomeDetail,
+              ),
+        actions: [
+          IconButton(
+            tooltip: 'Log out',
+            icon: const Icon(Icons.logout),
+            onPressed: logOut,
+          ),
+        ],
+      ),
+      body: currentPage,
       bottomNavigationBar: NavigationBar(
         selectedIndex: selectedTab,
-        onDestinationSelected: (int index) {
-          setState(() {
-            selectedTab = index;
-          });
-        },
+        onDestinationSelected: selectTab,
         destinations: const [
           NavigationDestination(
             icon: Icon(Icons.home_outlined),
@@ -127,8 +240,9 @@ class _HomeScreenState extends State<HomeScreen> {
             label: 'Home',
           ),
           NavigationDestination(
-          icon: Icon(Icons.add_shopping_cart),
-          label: 'Add',
+            icon: Icon(Icons.add_shopping_cart_outlined),
+            selectedIcon: Icon(Icons.add_shopping_cart),
+            label: 'Add',
           ),
           NavigationDestination(
             icon: Icon(Icons.account_balance_wallet_outlined),
@@ -141,53 +255,6 @@ class _HomeScreenState extends State<HomeScreen> {
             label: 'Profile',
           ),
         ],
-      ),
-    );
-  }
-}
-
-class PantryPage extends StatelessWidget {
-  const PantryPage({
-    super.key,
-    required this.icon,
-    required this.heading,
-    required this.description,
-  });
-
-  final IconData icon;
-  final String heading;
-  final String description;
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              icon,
-              size: 80,
-              color: const Color(0xFF1DB954),
-            ),
-            const SizedBox(height: 20),
-            Text(
-              heading,
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontSize: 26,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              description,
-              textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 16),
-            ),
-          ],
-        ),
       ),
     );
   }
