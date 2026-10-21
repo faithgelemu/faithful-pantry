@@ -73,3 +73,38 @@ purchase date today and expiry tomorrow.
 - Home and Budget weekly totals matched.
 
 Result: passed in desktop Chrome on Windows.
+
+## Redesigned navigation checks on 21 October 2026
+
+Manual checks in desktop Chrome on Windows passed:
+
+- Chrome Back returned from My Pantry to the Home dashboard.
+- Switching from Expiry Alerts to Budget, then Home, showed
+  the dashboard rather than reopening the detail view.
+- Editing through a grocery's three-dot menu returned to
+  My Pantry with the updated name and Home selected.
+- Partial use through Expiry Alerts reduced remaining quantity
+  while preserving the original purchase quantity and total.
+- Cancelling removal kept the item.
+- Confirming removal deleted inventory but preserved its purchase.
+- Home, My Pantry and Expiry Alerts remained usable at an
+  emulated 390 × 844 viewport.
+- Keyboard navigation reached dashboard links, search,
+  category selection, the item menu and the app back control.
+- The redesigned screens remained usable at 200% browser zoom.
+
+These are developer checks, not a formal accessibility audit
+or a substitute for real-device testing.
+
+## Lecturer feedback on text recognition
+
+Investigate camera-based text recognition for prefilling food
+names and expiry dates.
+
+Evaluate Flutter Web compatibility, camera/image input, recognition
+quality, privacy, cost and implementation effort before adoption.
+
+Any recognised name or date must be reviewed and confirmed by
+the user before saving. Manual entry remains available.
+
+This is an investigation, not a committed MVP feature.
