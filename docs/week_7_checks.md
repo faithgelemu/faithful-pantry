@@ -108,3 +108,22 @@ Any recognised name or date must be reviewed and confirmed by
 the user before saving. Manual entry remains available.
 
 This is an investigation, not a committed MVP feature.
+
+## Automated navigation checks on 22 October 2026
+
+HomeScreen accepts optional dashboard and detail builders so tests
+can use simple content without connecting to Firebase.
+
+Five navigation tests passed:
+- All four tabs select their corresponding pages.
+- My Pantry opens within Home; the back arrow returns.
+- Expiry Alerts opens within Home; the back arrow returns.
+- Switching tabs clears the Home detail selection.
+- A navigation back request closes the detail view.
+
+The tests exercise the real navigation logic with replacement
+page content. They do not test Firebase or the full detail screens.
+
+Latest checks:
+- flutter analyze: No issues found.
+- flutter test: All 32 tests passed.

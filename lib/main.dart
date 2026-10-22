@@ -80,9 +80,18 @@ class HomeScreen extends StatefulWidget {
   const HomeScreen({
     super.key,
     this.testPages,
+    this.dashboardBuilder,
+    this.detailBuilder,
   });
 
   final List<Widget>? testPages;
+
+  final Widget Function(
+    VoidCallback onOpenPantry,
+    VoidCallback onOpenAlerts,
+  )? dashboardBuilder;
+
+  final Widget Function(HomeDetail detail)? detailBuilder;
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -151,41 +160,62 @@ class _HomeScreenState extends State<HomeScreen> {
     return titles[selectedTab];
   }
 
-  Widget get currentPage {
+ Widget get currentPage {
+  // Use the real Home navigation with optional test content.
+  if (selectedTab == 0) {
+    final detail = homeDetail;
+
+    if (detail != null) {
+      final builder = widget.detailBuilder;
+
+      if (builder != null) {
+        return builder(detail);
+      }
+
+      return PantryScreen(
+        key: ValueKey(detail),
+        view: detail == HomeDetail.pantry
+            ? PantryView.inventory
+            : PantryView.alerts,
+      );
+    }
+
+    final dashboardBuilder = widget.dashboardBuilder;
+
+    if (dashboardBuilder != null) {
+      return dashboardBuilder(
+        () => openHomeDetail(HomeDetail.pantry),
+        () => openHomeDetail(HomeDetail.alerts),
+      );
+    }
+
     final testPages = widget.testPages;
 
     if (testPages != null) {
-      return testPages[selectedTab];
+      return testPages[0];
     }
 
-    switch (selectedTab) {
-      case 1:
-        return const AddGroceryScreen();
-      case 2:
-        return const BudgetScreen();
-      case 3:
-        return const ProfileScreen();
-      default:
-        switch (homeDetail) {
-          case HomeDetail.pantry:
-            return const PantryScreen(
-              key: ValueKey('inventory'),
-              view: PantryView.inventory,
-            );
-          case HomeDetail.alerts:
-            return const PantryScreen(
-              key: ValueKey('alerts'),
-              view: PantryView.alerts,
-            );
-          case null:
-            return HomeDashboard(
-              onOpenPantry: () => openHomeDetail(HomeDetail.pantry),
-              onOpenExpiryAlerts: () =>
-                  openHomeDetail(HomeDetail.alerts),
-            );
-        }
-    }
+    return HomeDashboard(
+      onOpenPantry: () => openHomeDetail(HomeDetail.pantry),
+      onOpenExpiryAlerts: () => openHomeDetail(HomeDetail.alerts),
+    );
   }
+
+  final testPages = widget.testPages;
+
+  if (testPages != null) {
+    return testPages[selectedTab];
+  }
+
+  switch (selectedTab) {
+    case 1:
+      return const AddGroceryScreen();
+    case 2:
+      return const BudgetScreen();
+    default:
+      return const ProfileScreen();
+  }
+}
 
     Future<void> logOut() async {
     try {
