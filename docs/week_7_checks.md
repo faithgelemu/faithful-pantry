@@ -127,3 +127,38 @@ page content. They do not test Firebase or the full detail screens.
 Latest checks:
 - flutter analyze: No issues found.
 - flutter test: All 32 tests passed.
+
+## Manual entry timing on 23 October 2026
+
+One familiarised developer attempt took approximately 33 seconds,
+without rushing, from entering grocery details to save confirmation.
+
+This is close to the approximate 30-second target. It is a single
+informal observation, not a representative usability result.
+
+## Refresh recovery check on 23 October 2026
+
+An initial refresh coincided with the app and another Chrome
+window becoming unresponsive. The cause was not established.
+
+After recovering Chrome and restarting Flutter:
+- The app launched normally.
+- Refreshing from Add returned to Home.
+- The signed-in session persisted.
+- The Add form remained responsive.
+
+The freeze was not reproduced in this repeat check.
+No app-code fix was made for it.
+
+## Connection recovery check on 23 October 2026
+
+Using Chrome DevTools Network → Offline:
+- Previously loaded groceries remained visible in My Pantry.
+- No writes were attempted while offline.
+
+After restoring No throttling:
+- A test grocery name was edited and saved.
+- The edited name persisted after refreshing.
+
+Result: recovery passed for this sequence.
+Offline saving and failed-write behaviour remain untested.
