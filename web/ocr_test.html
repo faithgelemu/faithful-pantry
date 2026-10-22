@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Faithful Pantry OCR experiment</title>
+
+  <style>
+    body {
+      font-family: system-ui, sans-serif;
+      background: #f5f7f5;
+      color: #17251b;
+      margin: 0;
+      padding: 24px;
+    }
+
+    main {
+      max-width: 650px;
+      margin: auto;
+      padding: 24px;
+      background: white;
+      border-radius: 16px;
+    }
+
+    label, button {
+      display: block;
+      margin-top: 20px;
+    }
+
+    input {
+      display: block;
+      margin-top: 8px;
+      max-width: 100%;
+    }
+
+    button {
+      background: #176b36;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      padding: 12px 20px;
+      font: inherit;
+      cursor: pointer;
+    }
+
+    button:disabled {
+      opacity: 0.55;
+      cursor: default;
+    }
+
+    img {
+      display: block;
+      max-width: 100%;
+      max-height: 350px;
+      margin-top: 20px;
+      object-fit: contain;
+    }
+
+    [hidden] {
+      display: none;
+    }
+
+    textarea {
+      box-sizing: border-box;
+      width: 100%;
+      min-height: 200px;
+      margin-top: 8px;
+      padding: 12px;
+      font: inherit;
+    }
+
+    #status {
+      min-height: 24px;
+    }
+  </style>
+</head>
+
+<body>
+  <main>
+    <h1>Read a food label</h1>
+
+    <p>
+      Experimental text recognition. Choose a clear JPG or PNG photo
+      of a product name or printed expiry date.
+    </p>
+
+    <p>
+      Recognition runs in this browser. This page does not upload
+      your photo to Firebase or an OCR server. Library and language
+      files are downloaded from external services.
+    </p>
+
+    <label for="photo">Choose a packaging photo</label>
+    <input id="photo" type="file" accept="image/png,image/jpeg">
+
+    <img id="preview" alt="Selected packaging photo" hidden>
+
+    <button id="read" type="button" disabled>Read text</button>
+
+    <p id="status" role="status" aria-live="polite">
+      Choose a photo to begin.
+    </p>
+
+    <label for="result">Recognised text — review carefully</label>
+    <textarea
+      id="result"
+      readonly
+      placeholder="Recognised text will appear here."
+    ></textarea>
+
+    <p>
+      Nothing is saved automatically. Recognition can be wrong,
+      especially for faint or ambiguous dates.
+    </p>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@6.0.1/dist/tesseract.min.js"></script>
+
+  <script>
+    const photoInput = document.getElementById('photo');
+    const preview = document.getElementById('preview');
+    const readButton = document.getElementById('read');
+    const status = document.getElementById('status');
+    const result = document.getElementById('result');
+
+    let selectedFile = null;
+    let previewUrl = null;
+    let busy = false;
+
+    photoInput.addEventListener('change', () => {
+      if (busy) return;
+
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+        previewUrl = null;
+      }
+
+      selectedFile = null;
+      preview.hidden = true;
+      preview.removeAttribute('src');
+      result.value = '';
+      readButton.disabled = true;
+
+      const file = photoInput.files[0];
+
+      if (!file) {
+        status.textContent = 'Choose a photo to begin.';
+        return;
+      }
+
+      if (!['image/jpeg', 'image/png'].includes(file.type)) {
+        status.textContent = 'Please choose a JPG or PNG image.';
+        return;
+      }
+
+      if (file.size > 10 * 1024 * 1024) {
+        status.textContent = 'Please choose an image smaller than 10 MB.';
+        return;
+      }
+
+      selectedFile = file;
+      previewUrl = URL.createObjectURL(file);
+      preview.src = previewUrl;
+      preview.hidden = false;
+      readButton.disabled = false;
+      status.textContent = 'Photo selected. Press Read text.';
+    });
+
+    readButton.addEventListener('click', async () => {
+      if (!selectedFile || busy) return;
+
+      busy = true;
+      readButton.disabled = true;
+      photoInput.disabled = true;
+      result.value = '';
+
+      let worker = null;
+
+      try {
+        if (!window.Tesseract) {
+          throw new Error('The OCR library did not load.');
+        }
+
+        status.textContent =
+          'Loading OCR. The first attempt may take longer.';
+
+        worker = await Tesseract.createWorker('eng', 1, {
+          logger: (message) => {
+            if (message.status === 'recognizing text') {
+              const percent = Math.round(message.progress * 100);
+              status.textContent = `Reading text: ${percent}%`;
+            }
+          }
+        });
+
+        const output = await worker.recognize(selectedFile);
+        const text = output.data.text.trim();
+
+        result.value = text;
+
+        status.textContent = text
+          ? 'Finished. Compare the text with the original photo.'
+          : 'No text found. Try a sharper, closer photo.';
+      } catch (error) {
+        console.error('OCR experiment failed:', error);
+
+        status.textContent =
+          'Unable to read the image. Check your internet connection ' +
+          'and try again. See the browser console for details.';
+      } finally {
+        if (worker) {
+          try {
+            await worker.terminate();
+          } catch (error) {
+            console.warn('OCR cleanup failed:', error);
+          }
+        }
+
+        busy = false;
+        photoInput.disabled = false;
+        readButton.disabled = !selectedFile;
+      }
+    });
+  </script>
+</body>
+</html>
