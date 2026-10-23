@@ -268,3 +268,18 @@ tests do not directly test this new feature.
 flutter analyze: no issues found.
 flutter test: all 32 existing tests passed.
 The preferred-name journey was checked manually.
+
+## Home expiry preview improvements
+
+- Added icons based on each grocery’s saved category.
+- Removed preview chevrons and added Use it and Wasted buttons.
+- Home and Expiry Alerts share the quantity dialog.
+- Confirmed cancellation leaves quantity unchanged.
+- Confirmed partial use updates Home and My Pantry.
+- Confirmed wasting the final quantity removes the active item.
+- Confirmed inventory actions leave weekly spending unchanged.
+- Checked buttons at a narrow browser width.
+
+flutter analyze: no issues found.
+flutter test: all 32 existing tests passed.
+Home quick actions were checked manually.

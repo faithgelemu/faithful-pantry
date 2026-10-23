@@ -6,6 +6,8 @@ import 'utils/day_refresh_mixin.dart';
 import 'utils/expiry_utils.dart';
 import 'widgets/weekly_spending_summary.dart';
 import 'services/settings_service.dart';
+import 'widgets/grocery_category_icon.dart';
+import 'widgets/grocery_quantity_dialog.dart';
 
 class HomeDashboard extends StatefulWidget {
   const HomeDashboard({
@@ -27,6 +29,7 @@ class _HomeDashboardState extends State<HomeDashboard>
   final settingsService = SettingsService();
   Stream<String?>? nameStream;
   Stream<List<PantryItem>>? pantryStream;
+  bool isUpdatingGrocery = false;
 
   @override
   void initState() {
@@ -62,6 +65,75 @@ class _HomeDashboardState extends State<HomeDashboard>
 
     return 'Expires in $days days';
   }
+  Future<void> markGrocery(PantryItem item, String action) async {
+  if (isUpdatingGrocery) return;
+
+  setState(() {
+    isUpdatingGrocery = true;
+  });
+
+  try {
+    final quantity = await showDialog<int>(
+      context: context,
+      builder: (_) => GroceryQuantityDialog(
+        item: item,
+        action: action,
+      ),
+    );
+
+    if (quantity == null || !mounted) return;
+
+    await service.resolveQuantity(
+      itemId: item.id,
+      quantity: quantity,
+      action: action,
+      actionId: service.newActionId(),
+    );
+
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          '$quantity of ${item.name} marked as $action.',
+        ),
+      ),
+    );
+  } on StateError catch (error) {
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(error.message)),
+    );
+  } on ArgumentError catch (error) {
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          error.message?.toString() ?? 'Check the quantity.',
+        ),
+      ),
+    );
+  } catch (_) {
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text(
+          'Unable to confirm the update. Check the pantry '
+          'quantity before trying again.',
+        ),
+      ),
+    );
+  } finally {
+    if (mounted) {
+      setState(() {
+        isUpdatingGrocery = false;
+      });
+    }
+  }
+}
 Widget welcomeBanner() {
   final reduceMotion = MediaQuery.of(context).disableAnimations;
 
@@ -369,43 +441,82 @@ Widget welcomeBanner() {
               )
             else
               ...soon.take(3).map((item) {
-                return Card(
-                  margin: const EdgeInsets.only(bottom: 8),
-                  child: ListTile(
-                    leading: Container(
-                    padding: const EdgeInsets.all(10),
-                     decoration: BoxDecoration(
-                     color: const Color(0xFFFFF0DB),
-                      borderRadius: BorderRadius.circular(12),
-                  ),
-  child: const Icon(
-    Icons.schedule_outlined,
-    color: Color(0xFF88451D),
-  ),
-),
-                    title: Text(
+  return Card(
+    margin: const EdgeInsets.only(bottom: 12),
+    child: Padding(
+      padding: const EdgeInsets.all(18),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              GroceryCategoryIcon(
+                category: item.category,
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
                       item.name,
                       style: const TextStyle(
-                        fontWeight: FontWeight.w600,
+                        fontSize: 19,
+                        fontWeight: FontWeight.w800,
                       ),
                     ),
-                    subtitle: Padding(
-  padding: const EdgeInsets.only(top: 6),
-  child: Text(
-    '${expiryLabel(item, today)}\n'
-    '${item.currentQuantity} remaining',
-    style: const TextStyle(
-      height: 1.5,
-      color: Color(0xFF536458),
+                    const SizedBox(height: 4),
+                    Text(
+                      item.category,
+                      style: const TextStyle(
+                        color: Color(0xFF536458),
+                        fontSize: 13,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      expiryLabel(item, today),
+                      style: const TextStyle(
+                        color: Color(0xFF88451D),
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '${item.currentQuantity} remaining',
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Wrap(
+            spacing: 10,
+            runSpacing: 8,
+            children: [
+              FilledButton.tonalIcon(
+                onPressed: isUpdatingGrocery
+                    ? null
+                    : () => markGrocery(item, 'used'),
+                icon: const Icon(Icons.check_circle_outline),
+                label: const Text('Use it'),
+              ),
+              OutlinedButton.icon(
+                onPressed: isUpdatingGrocery
+                    ? null
+                    : () => markGrocery(item, 'wasted'),
+                icon: const Icon(Icons.delete_sweep_outlined),
+                label: const Text('Wasted'),
+              ),
+            ],
+          ),
+        ],
+      ),
     ),
-  ),
-),
-isThreeLine: true,
-                    trailing: const Icon(Icons.chevron_right),
-                    onTap: widget.onOpenExpiryAlerts,
-                  ),
-                );
-              }),
+  );
+}),
             Align(
               alignment: Alignment.centerRight,
               child: TextButton(

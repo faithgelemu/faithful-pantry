@@ -5,6 +5,7 @@ import 'models/pantry_item.dart';
 import 'services/pantry_service.dart';
 import 'utils/day_refresh_mixin.dart';
 import 'utils/expiry_utils.dart';
+import 'widgets/grocery_quantity_dialog.dart';
 
 enum PantryView {
   inventory,
@@ -176,7 +177,7 @@ class _PantryScreenState extends State<PantryScreen>
     try {
       final quantity = await showDialog<int>(
         context: context,
-        builder: (_) => _QuantityDialog(
+        builder: (_) => GroceryQuantityDialog(
           item: item,
           action: action,
         ),
@@ -389,6 +390,7 @@ class _PantryScreenState extends State<PantryScreen>
           }).toList(),
           onChanged: (value) {
             if (value == null) return;
+
             setState(() {
               selectedCategory = value;
             });
@@ -459,12 +461,18 @@ class _PantryScreenState extends State<PantryScreen>
         }).toList();
 
         final expired = items.where((item) {
-          return ExpiryUtils.statusFor(item.expiryDate, today: today) ==
+          return ExpiryUtils.statusFor(
+                item.expiryDate,
+                today: today,
+              ) ==
               ExpiryStatus.expired;
         }).toList();
 
         final soon = items.where((item) {
-          return ExpiryUtils.statusFor(item.expiryDate, today: today) ==
+          return ExpiryUtils.statusFor(
+                item.expiryDate,
+                today: today,
+              ) ==
               ExpiryStatus.expiringSoon;
         }).toList();
 
@@ -527,102 +535,18 @@ class _PantryScreenState extends State<PantryScreen>
                         'within this period.',
                   ),
                 ] else if (matchingItems.isEmpty)
-                  const Text('No groceries match your search and category.')
+                  const Text(
+                    'No groceries match your search and category.',
+                  )
                 else
-                  ...matchingItems.map((item) => groceryCard(item, today)),
+                  ...matchingItems.map(
+                    (item) => groceryCard(item, today),
+                  ),
               ],
             ),
           ),
         );
       },
-    );
-  }
-}
-
-class _QuantityDialog extends StatefulWidget {
-  const _QuantityDialog({
-    required this.item,
-    required this.action,
-  });
-
-  final PantryItem item;
-  final String action;
-
-  @override
-  State<_QuantityDialog> createState() => _QuantityDialogState();
-}
-
-class _QuantityDialogState extends State<_QuantityDialog> {
-  final formKey = GlobalKey<FormState>();
-  final quantityController = TextEditingController(text: '1');
-
-  @override
-  void dispose() {
-    quantityController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      title: Text('Mark as ${widget.action}?'),
-      content: SingleChildScrollView(
-        child: Form(
-          key: formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                '${widget.item.name}: '
-                '${widget.item.currentQuantity} remaining.',
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: quantityController,
-                keyboardType: TextInputType.number,
-                autofocus: true,
-                decoration: const InputDecoration(
-                  labelText: 'Quantity',
-                  border: OutlineInputBorder(),
-                ),
-                validator: (value) {
-                  final quantity = int.tryParse(value?.trim() ?? '');
-
-                  if (quantity == null ||
-                      quantity < 1 ||
-                      quantity > widget.item.currentQuantity) {
-                    return 'Enter 1 to ${widget.item.currentQuantity}.';
-                  }
-
-                  return null;
-                },
-              ),
-              const SizedBox(height: 12),
-              const Text(
-                'Your original purchase and spending stay unchanged.',
-              ),
-            ],
-          ),
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('Cancel'),
-        ),
-        FilledButton(
-          onPressed: () {
-            if (!formKey.currentState!.validate()) return;
-
-            Navigator.pop(
-              context,
-              int.parse(quantityController.text.trim()),
-            );
-          },
-          child: Text('Mark as ${widget.action}'),
-        ),
-      ],
     );
   }
 }
