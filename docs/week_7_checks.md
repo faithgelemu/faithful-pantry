@@ -252,3 +252,5 @@ Validation:
 
 The reset journey was checked manually; the existing automated
 tests do not directly test this new feature.
+
+- Empty and malformed emails show validation errors before a reset request is sent.
