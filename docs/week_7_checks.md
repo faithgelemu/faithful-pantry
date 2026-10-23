@@ -227,3 +227,28 @@ Final checks:
 - PantryService diff: empty, confirming temporary code removal.
 
 Peer feedback remains pending.
+
+## Password reset
+
+Implemented a shared password-reset screen accessible from:
+- Login through “Forgot password?”
+- Profile through “Reset password”.
+
+Firebase Authentication sends the reset email. The user chooses
+a new password through the emailed link.
+
+Manual checks passed:
+- Profile opens the reset screen with the account email filled in.
+- The reset email arrives.
+- Completing the emailed flow allows login with the new password.
+- Login opens the reset screen without requiring a password.
+- An entered email carries across from Login.
+- Back returns to Login.
+- “Forgot password?” is hidden on Create account.
+
+Validation:
+- flutter analyze: no issues found.
+- flutter test: all 32 existing tests passed.
+
+The reset journey was checked manually; the existing automated
+tests do not directly test this new feature.

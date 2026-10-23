@@ -1,5 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'reset_password_screen.dart';
 
 class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key});
@@ -181,6 +182,26 @@ class _AuthScreenState extends State<AuthScreen> {
                       return null;
                     },
                   ),
+                  if (isLogin)
+  Align(
+    alignment: Alignment.centerRight,
+    child: TextButton(
+      onPressed: isLoading
+          ? null
+          : () {
+              FocusScope.of(context).unfocus();
+
+              Navigator.of(context).push<void>(
+                MaterialPageRoute(
+                  builder: (_) => ResetPasswordScreen(
+                    initialEmail: emailController.text.trim(),
+                  ),
+                ),
+              );
+            },
+      child: const Text('Forgot password?'),
+    ),
+  ),
                   if (errorMessage != null) ...[
                     const SizedBox(height: 16),
                     Text(

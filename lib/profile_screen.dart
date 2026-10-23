@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import 'services/settings_service.dart';
 import 'weekly_budget_screen.dart';
+import 'reset_password_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -202,10 +203,48 @@ class _ProfileScreenState extends State<ProfileScreen> {
               },
             ),
             const SizedBox(height: 24),
-            const Text(
-              'Use the Log out button at the top right '
-              'to sign out of this account.',
-            ),
+Card(
+  child: Padding(
+    padding: const EdgeInsets.all(20),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Password',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 8),
+        const Text(
+          'Request an email link to reset your password.',
+        ),
+        const SizedBox(height: 12),
+        OutlinedButton.icon(
+          onPressed: user.email == null
+              ? null
+              : () {
+                  Navigator.of(context).push<void>(
+                    MaterialPageRoute(
+                      builder: (_) => ResetPasswordScreen(
+                        initialEmail: user.email!,
+                      ),
+                    ),
+                  );
+                },
+          icon: const Icon(Icons.lock_reset),
+          label: const Text('Reset password'),
+        ),
+      ],
+    ),
+  ),
+),
+const SizedBox(height: 24),
+const Text(
+  'Use the Log out button at the top right '
+  'to sign out of this account.',
+),
           ],
         ),
       ),
