@@ -54,7 +54,105 @@ class _HomeDashboardState extends State<HomeDashboard>
 
     return 'Expires in $days days';
   }
+Widget welcomeBanner() {
+  final reduceMotion = MediaQuery.of(context).disableAnimations;
 
+  return TweenAnimationBuilder<double>(
+    tween: Tween<double>(begin: 0, end: 1),
+    duration: reduceMotion
+        ? Duration.zero
+        : const Duration(milliseconds: 450),
+    curve: Curves.easeOutCubic,
+    builder: (context, value, child) {
+      return Opacity(
+        opacity: value,
+        child: Transform.translate(
+          offset: Offset(0, 12 * (1 - value)),
+          child: child,
+        ),
+      );
+    },
+    child: Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Color(0xFF123C25),
+            Color(0xFF227447),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(24),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Expanded(
+                child: Text(
+                  'A LITTLE LESS WASTE',
+                  style: TextStyle(
+                    color: Color(0xFFDDF5DF),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 1.2,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              ExcludeSemantics(
+                child: Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF305F43),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: const Icon(
+                    Icons.shopping_basket_outlined,
+                    size: 38,
+                    color: Color(0xFFE5F6BD),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 18),
+          const Text(
+            'Good food.\nThoughtfully managed.',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 30,
+              height: 1.15,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 12),
+          const Text(
+            'Know what you have, see what needs attention '
+            'and make every grocery count.',
+            style: TextStyle(
+              color: Color(0xFFE3F1E6),
+              fontSize: 16,
+              height: 1.5,
+            ),
+          ),
+          const SizedBox(height: 20),
+          FilledButton.icon(
+            onPressed: widget.onOpenPantry,
+            style: FilledButton.styleFrom(
+              backgroundColor: const Color(0xFFE5F6BD),
+              foregroundColor: const Color(0xFF123C25),
+            ),
+            icon: const Icon(Icons.kitchen_outlined),
+            label: const Text('Explore my pantry'),
+          ),
+        ],
+      ),
+    ),
+  );
+}
   Widget navigationCard({
     required IconData icon,
     required String title,
@@ -232,18 +330,16 @@ class _HomeDashboardState extends State<HomeDashboard>
         child: ListView(
           padding: const EdgeInsets.all(24),
           children: [
-            const Text(
-              'Your pantry at a glance',
-              style: TextStyle(
-                fontSize: 26,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'See what needs attention and keep track of spending.',
-            ),
-            const SizedBox(height: 24),
+            welcomeBanner(),
+const SizedBox(height: 28),
+const Text(
+  'Your weekly overview',
+  style: TextStyle(
+    fontSize: 22,
+    fontWeight: FontWeight.w800,
+  ),
+),
+const SizedBox(height: 12),
             const WeeklySpendingSummary(),
             const SizedBox(height: 24),
             navigationCard(
