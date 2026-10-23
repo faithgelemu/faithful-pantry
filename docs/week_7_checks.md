@@ -162,3 +162,43 @@ After restoring No throttling:
 
 Result: recovery passed for this sequence.
 Offline saving and failed-write behaviour remain untested.
+
+## Offline pending-save check on 23 October 2026
+
+- Prepared one valid zero-price grocery while online.
+- Switched Chrome DevTools Network to Offline.
+- Clicked Save once; the form remained in Saving state.
+- Restored No throttling without submitting again.
+- Save confirmation appeared.
+- My Pantry contained exactly one matching entry, quantity 1.
+
+Result: the pending write completed after reconnection.
+This did not test a rejected write or offline persistence after refresh.
+
+Issue identified: a prolonged Saving state needs explanatory
+feedback so users know not to submit the item again.
+
+Peer feedback remains pending because the tester left.
+
+## Slow-save feedback improvement
+
+After 10 seconds, a pending grocery save displays an explanatory
+message asking the user to check the connection, keep the form
+open and avoid submitting again.
+
+The timer does not cancel or retry the write. Save remains disabled.
+The timer is cancelled on completion or when the screen is disposed.
+
+Manual check passed:
+- Simulated an offline save.
+- Delayed message appeared while Save remained disabled.
+- Restored the connection without submitting again.
+- Save confirmation appeared; the message cleared and form reset.
+- Exactly one matching grocery entry was present.
+
+Latest checks:
+- flutter analyze: No issues found.
+- flutter test: All 32 tests passed.
+
+The new timer/message behaviour was checked manually; the existing
+automated suite does not directly test it.

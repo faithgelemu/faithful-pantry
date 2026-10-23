@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import 'models/pantry_item.dart';
 import 'services/pantry_service.dart';
+import 'dart:async';
 
 class AddGroceryScreen extends StatefulWidget {
   const AddGroceryScreen({super.key});
@@ -33,10 +34,12 @@ class _AddGroceryScreenState extends State<AddGroceryScreen> {
   DateTime purchaseDate = DateUtils.dateOnly(DateTime.now());
   DateTime? expiryDate;
   bool isSaving = false;
+  Timer? slowSaveTimer;
   String? errorMessage;
 
   @override
   void dispose() {
+    slowSaveTimer?.cancel();
     nameController.dispose();
     quantityController.dispose();
     priceController.dispose();
@@ -114,6 +117,18 @@ class _AddGroceryScreenState extends State<AddGroceryScreen> {
       errorMessage = null;
     });
 
+    slowSaveTimer?.cancel();
+slowSaveTimer = Timer(const Duration(seconds: 10), () {
+  if (!mounted || !isSaving) return;
+
+  setState(() {
+    errorMessage =
+        'Saving is taking longer than usual. Check your connection. '
+        'Keep this form open; the save may still complete. '
+        'Please do not submit the item again.';
+  });
+});
+
     try {
       final quantity = int.parse(quantityController.text.trim());
 
@@ -143,6 +158,7 @@ class _AddGroceryScreenState extends State<AddGroceryScreen> {
         category = 'Other';
         purchaseDate = DateUtils.dateOnly(DateTime.now());
         expiryDate = null;
+        errorMessage = null;
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -179,6 +195,7 @@ class _AddGroceryScreenState extends State<AddGroceryScreen> {
         errorMessage = 'Something went wrong. Please try again.';
       });
     } finally {
+      slowSaveTimer?.cancel();
       if (mounted) {
         setState(() {
           isSaving = false;
