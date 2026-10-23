@@ -1,7 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import 'add_grocery_screen.dart';
 import 'auth_screen.dart';
@@ -30,129 +29,136 @@ class FaithfulPantryApp extends StatelessWidget {
       title: 'Faithful Pantry',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-  useMaterial3: true,
-  scaffoldBackgroundColor: const Color(0xFFF8FAF5),
-  colorScheme: ColorScheme.fromSeed(
-    seedColor: const Color(0xFF1DB954),
-    brightness: Brightness.light,
-  ).copyWith(
-    primary: const Color(0xFF176B3A),
-    onPrimary: Colors.white,
-    primaryContainer: const Color(0xFFDDF5DF),
-    onPrimaryContainer: const Color(0xFF123C25),
-    surface: Colors.white,
-    onSurface: const Color(0xFF20382B),
-    onSurfaceVariant: const Color(0xFF536458),
-    surfaceContainerHighest: const Color(0xFFEDF5E9),
-    outline: const Color(0xFF738574),
-    outlineVariant: const Color(0xFFDCE7D8),
-  ),
-  textTheme: GoogleFonts.nunitoSansTextTheme().apply(
-    bodyColor: const Color(0xFF20382B),
-    displayColor: const Color(0xFF123C25),
-  ),
-  appBarTheme: AppBarTheme(
-    backgroundColor: const Color(0xFFF8FAF5),
-    foregroundColor: const Color(0xFF123C25),
-    surfaceTintColor: Colors.transparent,
-    elevation: 0,
-    scrolledUnderElevation: 0,
-    centerTitle: false,
-    titleTextStyle: GoogleFonts.nunitoSans(
-      fontSize: 22,
-      fontWeight: FontWeight.w800,
-      color: const Color(0xFF123C25),
-    ),
-  ),
-  cardTheme: CardThemeData(
-    color: Colors.white,
-    surfaceTintColor: Colors.transparent,
-    elevation: 0,
-    shape: RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(20),
-      side: const BorderSide(
-        color: Color(0xFFDCE7D8),
+        useMaterial3: true,
+        fontFamily: 'NunitoSans',
+        scaffoldBackgroundColor: const Color(0xFFF8FAF5),
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: const Color(0xFF1DB954),
+          brightness: Brightness.light,
+        ).copyWith(
+          primary: const Color(0xFF176B3A),
+          onPrimary: Colors.white,
+          primaryContainer: const Color(0xFFDDF5DF),
+          onPrimaryContainer: const Color(0xFF123C25),
+          surface: Colors.white,
+          onSurface: const Color(0xFF20382B),
+          onSurfaceVariant: const Color(0xFF536458),
+          surfaceContainerHighest: const Color(0xFFEDF5E9),
+          outline: const Color(0xFF738574),
+          outlineVariant: const Color(0xFFDCE7D8),
+        ),
+        textTheme: ThemeData.light().textTheme.apply(
+              fontFamily: 'NunitoSans',
+              bodyColor: const Color(0xFF20382B),
+              displayColor: const Color(0xFF123C25),
+            ),
+        appBarTheme: const AppBarTheme(
+          backgroundColor: Color(0xFFF8FAF5),
+          foregroundColor: Color(0xFF123C25),
+          surfaceTintColor: Colors.transparent,
+          elevation: 0,
+          scrolledUnderElevation: 0,
+          centerTitle: false,
+          titleTextStyle: TextStyle(
+            fontFamily: 'NunitoSans',
+            fontSize: 22,
+            fontWeight: FontWeight.w800,
+            color: Color(0xFF123C25),
+          ),
+        ),
+        cardTheme: CardThemeData(
+          color: Colors.white,
+          surfaceTintColor: Colors.transparent,
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+            side: const BorderSide(
+              color: Color(0xFFDCE7D8),
+            ),
+          ),
+        ),
+        inputDecorationTheme: InputDecorationTheme(
+          filled: true,
+          fillColor: Colors.white,
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 18,
+          ),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+            borderSide: const BorderSide(
+              color: Color(0xFF738574),
+            ),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+            borderSide: const BorderSide(
+              color: Color(0xFF176B3A),
+              width: 2,
+            ),
+          ),
+        ),
+        filledButtonTheme: FilledButtonThemeData(
+          style: FilledButton.styleFrom(
+            minimumSize: const Size(48, 50),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 22,
+              vertical: 14,
+            ),
+            textStyle: const TextStyle(
+              fontFamily: 'NunitoSans',
+              fontSize: 16,
+              fontWeight: FontWeight.w800,
+            ),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(14),
+            ),
+          ),
+        ),
+        outlinedButtonTheme: OutlinedButtonThemeData(
+          style: OutlinedButton.styleFrom(
+            minimumSize: const Size(48, 48),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 18,
+              vertical: 12,
+            ),
+            textStyle: const TextStyle(
+              fontFamily: 'NunitoSans',
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
+            ),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(14),
+            ),
+          ),
+        ),
+        textButtonTheme: TextButtonThemeData(
+          style: TextButton.styleFrom(
+            minimumSize: const Size(48, 48),
+            textStyle: const TextStyle(
+              fontFamily: 'NunitoSans',
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ),
+        navigationBarTheme: const NavigationBarThemeData(
+          backgroundColor: Colors.white,
+          surfaceTintColor: Colors.transparent,
+          indicatorColor: Color(0xFFDDF5DF),
+          labelTextStyle: WidgetStatePropertyAll(
+            TextStyle(
+              fontFamily: 'NunitoSans',
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFF20382B),
+            ),
+          ),
+        ),
       ),
-    ),
-  ),
-  inputDecorationTheme: InputDecorationTheme(
-    filled: true,
-    fillColor: Colors.white,
-    contentPadding: const EdgeInsets.symmetric(
-      horizontal: 16,
-      vertical: 18,
-    ),
-    border: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(14),
-    ),
-    enabledBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(14),
-      borderSide: const BorderSide(
-        color: Color(0xFF738574),
-      ),
-    ),
-    focusedBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(14),
-      borderSide: const BorderSide(
-        color: Color(0xFF176B3A),
-        width: 2,
-      ),
-    ),
-  ),
-  filledButtonTheme: FilledButtonThemeData(
-    style: FilledButton.styleFrom(
-      minimumSize: const Size(48, 50),
-      padding: const EdgeInsets.symmetric(
-        horizontal: 22,
-        vertical: 14,
-      ),
-      textStyle: GoogleFonts.nunitoSans(
-        fontSize: 16,
-        fontWeight: FontWeight.w800,
-      ),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(14),
-      ),
-    ),
-  ),
-  outlinedButtonTheme: OutlinedButtonThemeData(
-    style: OutlinedButton.styleFrom(
-      minimumSize: const Size(48, 48),
-      padding: const EdgeInsets.symmetric(
-        horizontal: 18,
-        vertical: 12,
-      ),
-      textStyle: GoogleFonts.nunitoSans(
-        fontSize: 15,
-        fontWeight: FontWeight.w700,
-      ),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(14),
-      ),
-    ),
-  ),
-  textButtonTheme: TextButtonThemeData(
-    style: TextButton.styleFrom(
-      minimumSize: const Size(48, 48),
-      textStyle: GoogleFonts.nunitoSans(
-        fontSize: 15,
-        fontWeight: FontWeight.w700,
-      ),
-    ),
-  ),
-  navigationBarTheme: NavigationBarThemeData(
-    backgroundColor: Colors.white,
-    surfaceTintColor: Colors.transparent,
-    indicatorColor: const Color(0xFFDDF5DF),
-    labelTextStyle: WidgetStatePropertyAll(
-      GoogleFonts.nunitoSans(
-        fontSize: 12,
-        fontWeight: FontWeight.w700,
-        color: const Color(0xFF20382B),
-      ),
-    ),
-  ),
-),
       home: StreamBuilder<User?>(
         stream: FirebaseAuth.instance.authStateChanges(),
         builder: (context, snapshot) {
@@ -219,7 +225,6 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   int selectedTab = 0;
   HomeDetail? homeDetail;
-
   LocalHistoryEntry? detailHistory;
 
   static const titles = [
@@ -239,9 +244,8 @@ class _HomeScreenState extends State<HomeScreen> {
       onRemove: () {
         detailHistory = null;
 
-        if (!mounted || detailHistory == null && homeDetail == null) {
-  return;
-}
+        if (!mounted || homeDetail == null) return;
+
         setState(() {
           homeDetail = null;
         });
@@ -279,64 +283,64 @@ class _HomeScreenState extends State<HomeScreen> {
     return titles[selectedTab];
   }
 
- Widget get currentPage {
-  // Use the real Home navigation with optional test content.
-  if (selectedTab == 0) {
-    final detail = homeDetail;
+  Widget get currentPage {
+    // Use the real Home navigation with optional test content.
+    if (selectedTab == 0) {
+      final detail = homeDetail;
 
-    if (detail != null) {
-      final builder = widget.detailBuilder;
+      if (detail != null) {
+        final builder = widget.detailBuilder;
 
-      if (builder != null) {
-        return builder(detail);
+        if (builder != null) {
+          return builder(detail);
+        }
+
+        return PantryScreen(
+          key: ValueKey(detail),
+          view: detail == HomeDetail.pantry
+              ? PantryView.inventory
+              : PantryView.alerts,
+        );
       }
 
-      return PantryScreen(
-        key: ValueKey(detail),
-        view: detail == HomeDetail.pantry
-            ? PantryView.inventory
-            : PantryView.alerts,
-      );
-    }
+      final dashboardBuilder = widget.dashboardBuilder;
 
-    final dashboardBuilder = widget.dashboardBuilder;
+      if (dashboardBuilder != null) {
+        return dashboardBuilder(
+          () => openHomeDetail(HomeDetail.pantry),
+          () => openHomeDetail(HomeDetail.alerts),
+        );
+      }
 
-    if (dashboardBuilder != null) {
-      return dashboardBuilder(
-        () => openHomeDetail(HomeDetail.pantry),
-        () => openHomeDetail(HomeDetail.alerts),
+      final testPages = widget.testPages;
+
+      if (testPages != null) {
+        return testPages[0];
+      }
+
+      return HomeDashboard(
+        onOpenPantry: () => openHomeDetail(HomeDetail.pantry),
+        onOpenExpiryAlerts: () => openHomeDetail(HomeDetail.alerts),
       );
     }
 
     final testPages = widget.testPages;
 
     if (testPages != null) {
-      return testPages[0];
+      return testPages[selectedTab];
     }
 
-    return HomeDashboard(
-      onOpenPantry: () => openHomeDetail(HomeDetail.pantry),
-      onOpenExpiryAlerts: () => openHomeDetail(HomeDetail.alerts),
-    );
+    switch (selectedTab) {
+      case 1:
+        return const AddGroceryScreen();
+      case 2:
+        return const BudgetScreen();
+      default:
+        return const ProfileScreen();
+    }
   }
 
-  final testPages = widget.testPages;
-
-  if (testPages != null) {
-    return testPages[selectedTab];
-  }
-
-  switch (selectedTab) {
-    case 1:
-      return const AddGroceryScreen();
-    case 2:
-      return const BudgetScreen();
-    default:
-      return const ProfileScreen();
-  }
-}
-
-    Future<void> logOut() async {
+  Future<void> logOut() async {
     try {
       await FirebaseAuth.instance.signOut();
 
