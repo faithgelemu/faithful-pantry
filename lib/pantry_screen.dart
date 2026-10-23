@@ -6,6 +6,7 @@ import 'services/pantry_service.dart';
 import 'utils/day_refresh_mixin.dart';
 import 'utils/expiry_utils.dart';
 import 'widgets/grocery_quantity_dialog.dart';
+import 'widgets/grocery_category_icon.dart';
 
 enum PantryView {
   inventory,
@@ -226,21 +227,9 @@ class _PantryScreenState extends State<PantryScreen>
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: Theme.of(context)
-                        .colorScheme
-                        .surfaceContainerHighest,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Icon(
-                    isAlerts
-                        ? Icons.schedule_outlined
-                        : Icons.shopping_bag_outlined,
-                    color: color,
-                  ),
-                ),
+                GroceryCategoryIcon(
+  category: item.category,
+),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
@@ -255,17 +244,41 @@ class _PantryScreenState extends State<PantryScreen>
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        '${item.category} '
-                        '• ${item.currentQuantity} remaining',
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        expiryLabel(item.expiryDate, today),
-                        style: TextStyle(
-                          color: color,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
+  item.category,
+  style: const TextStyle(
+    fontSize: 13,
+    color: Color(0xFF536458),
+  ),
+),
+const SizedBox(height: 10),
+Text(
+  '${item.currentQuantity} remaining',
+  style: const TextStyle(
+    fontSize: 16,
+    fontWeight: FontWeight.w700,
+    color: Color(0xFF20382B),
+  ),
+),
+const SizedBox(height: 10),
+Container(
+  padding: const EdgeInsets.symmetric(
+    horizontal: 10,
+    vertical: 7,
+  ),
+  decoration: BoxDecoration(
+    color: color.withValues(alpha: 0.08),
+    borderRadius: BorderRadius.circular(10),
+  ),
+  child: Text(
+    expiryLabel(item.expiryDate, today),
+    style: TextStyle(
+      fontSize: 13,
+      height: 1.4,
+      color: color,
+      fontWeight: FontWeight.w700,
+    ),
+  ),
+),
                     ],
                   ),
                 ),
