@@ -216,18 +216,62 @@ slowSaveTimer = Timer(const Duration(seconds: 10), () {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const Text(
-                  'Add a grocery',
-                  style: TextStyle(
-                    fontSize: 26,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                const Text(
-                  'Enter the item details to track expiry and spending.',
-                ),
-                const SizedBox(height: 24),
+                Container(
+  padding: const EdgeInsets.all(22),
+  decoration: BoxDecoration(
+    color: const Color(0xFFEDF6E8),
+    borderRadius: BorderRadius.circular(22),
+    border: Border.all(
+      color: const Color(0xFFD3E6CC),
+    ),
+  ),
+  child: Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: const Icon(
+          Icons.add_shopping_cart_outlined,
+          color: Color(0xFF176B3A),
+          size: 30,
+        ),
+      ),
+      const SizedBox(height: 16),
+      const Text(
+        'A fresh addition',
+        style: TextStyle(
+          fontSize: 28,
+          height: 1.2,
+          fontWeight: FontWeight.w800,
+          color: Color(0xFF123C25),
+        ),
+      ),
+      const SizedBox(height: 10),
+      const Text(
+        'Add your grocery details to keep your pantry '
+        'organised and your spending in view.',
+        style: TextStyle(
+          fontSize: 15,
+          height: 1.5,
+          color: Color(0xFF435246),
+        ),
+      ),
+    ],
+  ),
+),
+const SizedBox(height: 24),
+const Text(
+  'Item details',
+  style: TextStyle(
+    fontSize: 19,
+    fontWeight: FontWeight.w800,
+  ),
+),
+const SizedBox(height: 16),
                 TextFormField(
                   controller: nameController,
                   enabled: !isSaving,
@@ -268,9 +312,17 @@ slowSaveTimer = Timer(const Duration(seconds: 10), () {
                           });
                         },
                 ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: quantityController,
+                const SizedBox(height: 28),
+const Text(
+  'Purchase details',
+  style: TextStyle(
+    fontSize: 19,
+    fontWeight: FontWeight.w800,
+  ),
+),
+const SizedBox(height: 16),
+TextFormField(
+  controller: quantityController,
                   enabled: !isSaving,
                   keyboardType: TextInputType.number,
                   decoration: const InputDecoration(
@@ -307,8 +359,24 @@ slowSaveTimer = Timer(const Duration(seconds: 10), () {
                     return null;
                   },
                 ),
-                const SizedBox(height: 20),
-                OutlinedButton.icon(
+                const SizedBox(height: 28),
+const Text(
+  'Important dates',
+  style: TextStyle(
+    fontSize: 19,
+    fontWeight: FontWeight.w800,
+  ),
+),
+const SizedBox(height: 8),
+const Text(
+  'Record when you bought it and the expiry date on its label.',
+  style: TextStyle(
+    color: Color(0xFF536458),
+    height: 1.5,
+  ),
+),
+const SizedBox(height: 16),
+OutlinedButton.icon(
                   onPressed: isSaving
                       ? null
                       : () => chooseDate(isExpiry: false),
