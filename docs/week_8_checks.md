@@ -41,3 +41,10 @@ The local server must remain running for these checks.
 Chrome and VS Code became unresponsive during the earlier session.
 The cause was not established. After reopening VS Code, analysis,
 tests and the release build completed successfully.
+
+- Microsoft Edge: login, saved groceries and Budget work.
+- At 200% zoom in Edge, Home, Add, Budget and Profile remain
+  usable, with no overlapping text or inaccessible controls.
+
+  - Keyboard check passed: navigation tabs and Add's Save grocery
+  button are reachable and operable, with visible focus.
