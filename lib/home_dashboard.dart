@@ -185,33 +185,90 @@ Widget welcomeBanner() {
   );
 }
   Widget navigationCard({
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    required VoidCallback onTap,
-  }) {
-    return Card(
-      margin: EdgeInsets.zero,
-      clipBehavior: Clip.antiAlias,
-      child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 20,
-          vertical: 12,
-        ),
-        leading: Icon(
-          icon,
-          color: Theme.of(context).colorScheme.primary,
-        ),
-        title: Text(
-          title,
-          style: const TextStyle(fontWeight: FontWeight.bold),
-        ),
-        subtitle: Text(subtitle),
-        trailing: const Icon(Icons.chevron_right),
-        onTap: onTap,
+  required IconData icon,
+  required String title,
+  required String subtitle,
+  required VoidCallback onTap,
+  bool isAlert = false,
+}) {
+  final background = isAlert
+      ? const Color(0xFFFFF3E7)
+      : const Color(0xFFEDF6E8);
+
+  final accent = isAlert
+      ? const Color(0xFF88451D)
+      : const Color(0xFF176B3A);
+
+  return Card(
+    margin: EdgeInsets.zero,
+    color: background,
+    clipBehavior: Clip.antiAlias,
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(20),
+      side: BorderSide(
+        color: isAlert
+            ? const Color(0xFFEEDBC9)
+            : const Color(0xFFD3E6CC),
       ),
-    );
-  }
+    ),
+    child: InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            ExcludeSemantics(
+              child: Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Icon(
+                  icon,
+                  size: 28,
+                  color: accent,
+                ),
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w800,
+                      color: accent,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    subtitle,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      height: 1.5,
+                      color: Color(0xFF435246),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            Icon(
+              Icons.arrow_forward_rounded,
+              color: accent,
+              size: 22,
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+}
 
   Widget expiryPreview() {
     if (pantryStream == null) {
@@ -315,17 +372,35 @@ Widget welcomeBanner() {
                 return Card(
                   margin: const EdgeInsets.only(bottom: 8),
                   child: ListTile(
-                    leading: const Icon(Icons.schedule_outlined),
+                    leading: Container(
+                    padding: const EdgeInsets.all(10),
+                     decoration: BoxDecoration(
+                     color: const Color(0xFFFFF0DB),
+                      borderRadius: BorderRadius.circular(12),
+                  ),
+  child: const Icon(
+    Icons.schedule_outlined,
+    color: Color(0xFF88451D),
+  ),
+),
                     title: Text(
                       item.name,
                       style: const TextStyle(
                         fontWeight: FontWeight.w600,
                       ),
                     ),
-                    subtitle: Text(
-                      '${expiryLabel(item, today)}'
-                      ' • ${item.currentQuantity} remaining',
-                    ),
+                    subtitle: Padding(
+  padding: const EdgeInsets.only(top: 6),
+  child: Text(
+    '${expiryLabel(item, today)}\n'
+    '${item.currentQuantity} remaining',
+    style: const TextStyle(
+      height: 1.5,
+      color: Color(0xFF536458),
+    ),
+  ),
+),
+isThreeLine: true,
                     trailing: const Icon(Icons.chevron_right),
                     onTap: widget.onOpenExpiryAlerts,
                   ),
@@ -381,6 +456,7 @@ const SizedBox(height: 12),
             ),
             const SizedBox(height: 12),
             navigationCard(
+              isAlert: true,
               icon: Icons.notifications_outlined,
               title: 'Expiry Alerts',
               subtitle: 'Review dates and record use or waste',
