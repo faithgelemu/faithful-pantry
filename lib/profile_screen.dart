@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'services/settings_service.dart';
 import 'weekly_budget_screen.dart';
 import 'reset_password_screen.dart';
+import 'preferred_name_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -16,6 +17,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final settingsService = SettingsService();
 
   Stream<int?>? budgetStream;
+  Stream<String?>? nameStream;
   bool isOpeningBudget = false;
 
   @override
@@ -24,6 +26,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     try {
       budgetStream = settingsService.watchWeeklyBudgetPence();
+      nameStream = settingsService.watchPreferredName();
     } on StateError {
       budgetStream = null;
     }
@@ -127,6 +130,73 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
               ),
             ),
+            const SizedBox(height: 16),
+StreamBuilder<String?>(
+  stream: nameStream,
+  builder: (context, snapshot) {
+    if (snapshot.hasError || nameStream == null) {
+      return const Text(
+        'Unable to load your preferred name. '
+        'Reopen Profile to try again.',
+      );
+    }
+
+    if (snapshot.connectionState == ConnectionState.waiting ||
+        snapshot.connectionState == ConnectionState.none) {
+      return const LinearProgressIndicator();
+    }
+
+    final name = snapshot.data;
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Make it yours',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              name == null
+                  ? 'Add a preferred name for your Home greeting.'
+                  : 'Preferred name: $name',
+            ),
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
+              icon: const Icon(Icons.person_outline),
+              label: Text(
+                name == null ? 'Add preferred name' : 'Edit preferred name',
+              ),
+              onPressed: () async {
+                final saved = await Navigator.of(context).push<bool>(
+                  MaterialPageRoute(
+                    builder: (_) => PreferredNameScreen(
+                      currentName: name,
+                    ),
+                  ),
+                );
+
+                if (!context.mounted || saved != true) return;
+
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Preferred name saved.'),
+                  ),
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  },
+),
             const SizedBox(height: 24),
             const Text(
               'Settings',

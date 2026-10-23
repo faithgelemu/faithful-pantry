@@ -254,3 +254,17 @@ The reset journey was checked manually; the existing automated
 tests do not directly test this new feature.
 
 - Empty and malformed emails show validation errors before a reset request is sent.
+
+## Preferred name and personalised Home greeting
+
+- Added an optional preferred name setting in Profile.
+- Confirmed the name remains after switching tabs.
+- Confirmed saving the name preserves the weekly budget.
+- Home displays the saved name in its welcome banner.
+- Editing the name updates the Home greeting.
+- Checked the greeting at a narrow browser width.
+- Confirmed Home spending still matches Budget.
+
+flutter analyze: no issues found.
+flutter test: all 32 existing tests passed.
+The preferred-name journey was checked manually.

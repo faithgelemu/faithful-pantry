@@ -43,4 +43,35 @@ class SettingsService {
       SetOptions(merge: true),
     );
   }
+  Stream<String?> watchPreferredName() {
+  return _preferences.snapshots().map((snapshot) {
+    final value = snapshot.data()?['preferredName'];
+
+    if (value is! String || value.trim().isEmpty) {
+      return null;
+    }
+
+    return value.trim();
+  });
+}
+
+Future<void> savePreferredName(String name) async {
+  final cleanedName = name.trim();
+
+  if (cleanedName.runes.length > 40) {
+    throw ArgumentError(
+      'Use a preferred name of up to 40 characters.',
+    );
+  }
+
+  await _preferences.set(
+    {
+      'preferredName': cleanedName.isEmpty
+          ? FieldValue.delete()
+          : cleanedName,
+      'updatedAt': FieldValue.serverTimestamp(),
+    },
+    SetOptions(merge: true),
+  );
+}
 }

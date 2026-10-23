@@ -5,6 +5,7 @@ import 'services/pantry_service.dart';
 import 'utils/day_refresh_mixin.dart';
 import 'utils/expiry_utils.dart';
 import 'widgets/weekly_spending_summary.dart';
+import 'services/settings_service.dart';
 
 class HomeDashboard extends StatefulWidget {
   const HomeDashboard({
@@ -23,12 +24,19 @@ class HomeDashboard extends StatefulWidget {
 class _HomeDashboardState extends State<HomeDashboard>
     with DayRefreshMixin<HomeDashboard> {
   final service = PantryService();
+  final settingsService = SettingsService();
+  Stream<String?>? nameStream;
   Stream<List<PantryItem>>? pantryStream;
 
   @override
   void initState() {
     super.initState();
     loadPantry();
+    try {
+  nameStream = settingsService.watchPreferredName();
+} on StateError {
+  nameStream = null;
+}
   }
 
   void loadPantry() {
@@ -119,15 +127,38 @@ Widget welcomeBanner() {
             ],
           ),
           const SizedBox(height: 18),
-          const Text(
-            'Good food.\nThoughtfully managed.',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 30,
-              height: 1.15,
-              fontWeight: FontWeight.w800,
-            ),
+          StreamBuilder<String?>(
+  stream: nameStream,
+  builder: (context, snapshot) {
+    final name = snapshot.hasError ? null : snapshot.data;
+    final hasName = name != null && name.trim().isNotEmpty;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          hasName ? 'Hi $name 👋' : 'Welcome back',
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 32,
+            height: 1.2,
+            fontWeight: FontWeight.w800,
           ),
+        ),
+        const SizedBox(height: 10),
+        const Text(
+          'A little care. Less food waste.',
+          style: TextStyle(
+            color: Color(0xFFE5F6BD),
+            fontSize: 19,
+            height: 1.4,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ],
+    );
+  },
+),
           const SizedBox(height: 12),
           const Text(
             'Know what you have, see what needs attention '
