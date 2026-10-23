@@ -202,3 +202,28 @@ Latest checks:
 
 The new timer/message behaviour was checked manually; the existing
 automated suite does not directly test it.
+
+## Server-rejected save check on 23 October 2026
+
+Temporarily added a forbidden write to a specifically named test
+grocery's batch. Published Firestore rules were not changed.
+
+Observed results:
+- Firestore rejected the save.
+- The form displayed the permission error.
+- Entered details remained present and Save became enabled again.
+- No matching pantry entry was found after rejection.
+
+Removed the temporary code. Hot reload returned to Home and reset
+the form, so an uninterrupted retry of retained input was not tested.
+
+Re-entered the details and submitted once:
+- Save succeeded.
+- Exactly one matching pantry entry appeared.
+
+Final checks:
+- flutter analyze: No issues found.
+- flutter test: All 32 tests passed.
+- PantryService diff: empty, confirming temporary code removal.
+
+Peer feedback remains pending.
