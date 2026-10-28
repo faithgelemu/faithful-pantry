@@ -298,3 +298,5 @@ Implemented during the Week 6 lab on 28 October 2026.
 - A blank test image produced no date suggestions.
 - The screen explained the manual-entry fallback.
 - Returning to the grocery form allowed manual date selection.
+- Blocking the Tesseract library download displayed an error.
+- Unblocking it and retrying without refreshing recognised the date.
