@@ -56,3 +56,9 @@ tests and the release build completed successfully.
 - Offline cloud-data access, editing and OCR are not guaranteed.
 - Each deployment requires a web build followed by
   tools/prepare_offline.ps1 before deploying.
+
+  ### Installed iPhone offline recovery
+- Installed app interface loaded and tabs worked in Airplane Mode
+  with Wi-Fi disabled.
+- Saved groceries and budget returned immediately after reconnecting.
+- This verifies interface availability and recovery, not offline editing.
