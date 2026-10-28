@@ -290,6 +290,8 @@ Implemented during the Week 6 lab on 28 October 2026.
 - OCR library and language files require external downloads.
 - Recognition runs in the browser; this implementation does not
   upload the photo to Firebase or an OCR server.
-- Recognition failure and camera permission denial need explicit checks.
+- Recognition failure handling still needs an explicit check.
 - Use by and Best before remain distinct label meanings; the current
   parser suggests dates without storing the label type.
+- Blocking camera permission showed a clear error.
+- Returning to photo selection still worked.
