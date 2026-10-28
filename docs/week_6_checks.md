@@ -327,3 +327,11 @@ Implemented during the Week 6 lab on 28 October 2026.
 - flutter analyze: no issues found.
 - Full test suite: all 56 tests passed.
 - Updated parser still requires deployment and phone retesting.
+
+### Hosted expanded-format checks
+- iPhone: SEP 2028 suggested 30/09/2028 with the assumed-day notice.
+- iPhone: cropped Nescafé 03 2027 suggested 31/03/2027
+  with the assumed-day notice.
+- Including surrounding time/batch text failed in the Nescafé
+  example; isolating the date succeeded.
+- Users must verify the date's meaning against the packaging.
