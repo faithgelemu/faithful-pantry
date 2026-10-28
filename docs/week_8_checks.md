@@ -48,3 +48,11 @@ tests and the release build completed successfully.
 
   - Keyboard check passed: navigation tabs and Add's Save grocery
   button are reachable and operable, with visible focus.
+  ### Hosted service-worker checks
+- Added a custom service worker and generated release asset list.
+- Chrome DevTools showed sw.js registered and activated.
+- App interface loaded after refreshing with DevTools Offline enabled.
+- Saved groceries and budget returned after reconnecting.
+- Offline cloud-data access, editing and OCR are not guaranteed.
+- Each deployment requires a web build followed by
+  tools/prepare_offline.ps1 before deploying.
