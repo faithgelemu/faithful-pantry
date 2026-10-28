@@ -75,3 +75,17 @@ tests and the release build completed successfully.
   became £3.00, and weekly spending increased by £1.00.
 - Removed Demo bread: it left the pantry; its £3.00 purchase
   remained in Budget and spending stayed unchanged.
+
+  ### Firestore ownership-rule simulations
+Tested in Firebase Rules Playground without changing deployed rules.
+
+- Signed-out pantry read: denied.
+- Different user's pantry read: denied.
+- Owner's pantry read: allowed.
+- Different user's pantry create: denied.
+- Owner's pantry create: allowed.
+- Different user's purchase-history read: denied.
+- Different user's settings read: denied.
+
+These verify the listed ownership scenarios, not field validation
+or every possible database operation.
