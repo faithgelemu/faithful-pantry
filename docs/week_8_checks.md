@@ -62,3 +62,16 @@ tests and the release build completed successfully.
   with Wi-Fi disabled.
 - Saved groceries and budget returned immediately after reconnecting.
 - This verifies interface availability and recovery, not offline editing.
+
+### Hosted iPhone inventory and spending journey
+- Added Demo milk: 4 items at £1.25 each.
+- Pantry showed 4 remaining; weekly spending increased by £5.00.
+- Used 2: remaining quantity became 2; spending stayed unchanged.
+- Wasted the remaining 2: item left the active pantry and
+  Expiring Soon; its £5.00 purchase remained in Budget.
+
+  - Added Demo bread: 2 items at £1.00; spending increased by £2.00.
+- Edited unit price to £1.50: quantity stayed 2, purchase total
+  became £3.00, and weekly spending increased by £1.00.
+- Removed Demo bread: it left the pantry; its £3.00 purchase
+  remained in Budget and spending stayed unchanged.
