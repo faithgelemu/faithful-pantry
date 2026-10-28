@@ -295,3 +295,6 @@ Implemented during the Week 6 lab on 28 October 2026.
   parser suggests dates without storing the label type.
 - Blocking camera permission showed a clear error.
 - Returning to photo selection still worked.
+- A blank test image produced no date suggestions.
+- The screen explained the manual-entry fallback.
+- Returning to the grocery form allowed manual date selection.
