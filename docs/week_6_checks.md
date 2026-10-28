@@ -244,3 +244,52 @@ behaviour remain part of later browser verification.
 
 The two previously outstanding Week 6 checks are now completed
 within the scope described above.
+
+## OCR assisted expiry entry and camera integration
+
+Implemented during the Week 6 lab on 28 October 2026.
+
+### Implementation
+
+- Added browser text recognition using Tesseract.js.
+- Added photo selection and optional camera capture.
+- Camera access is requested after the user taps Enable camera.
+- Microphone access is disabled.
+- Added date suggestions with user confirmation before form entry.
+- Manual date entry remains available.
+- Recognition does not automatically save groceries.
+
+### Date interpretation
+
+- Supports UK numeric dates, ISO dates and named months.
+- Supports both OCT 12 and 12 OCT.
+- Missing years use the current year and are labelled as assumed.
+- Printed years take priority.
+- Two digit years are interpreted as 2000–2099.
+- Impossible dates are rejected.
+- Fixed overlapping matches found by an automated test.
+- Detected dates are not automatically classified as expiry dates;
+  users must compare them with the label.
+
+### Checks completed
+
+- A clear uploaded image of 11/12/2024 produced that date.
+- A generated test label of 15/12/2026 produced that date.
+- Confirming the future date populated the grocery form.
+- Saved a test grocery and verified its quantity and expiry in My Pantry.
+- Returning without selecting a date preserved manual entry.
+- Laptop camera permission, preview, capture and image return worked.
+- flutter analyze: no issues found.
+- flutter test: all 44 tests passed.
+
+### Limitations and pending checks
+
+- Camera-photo recognition and rear-camera selection need phone testing.
+- Synthetic and clear-image tests do not establish real-label accuracy.
+- Blurry, faint, curved or stylised printing may be misread.
+- OCR library and language files require external downloads.
+- Recognition runs in the browser; this implementation does not
+  upload the photo to Firebase or an OCR server.
+- Recognition failure and camera permission denial need explicit checks.
+- Use by and Best before remain distinct label meanings; the current
+  parser suggests dates without storing the label type.

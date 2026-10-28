@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'models/pantry_item.dart';
 import 'services/pantry_service.dart';
 import 'dart:async';
+import 'label_ocr_screen.dart';
 
 class AddGroceryScreen extends StatefulWidget {
   const AddGroceryScreen({super.key});
@@ -74,7 +75,36 @@ class _AddGroceryScreenState extends State<AddGroceryScreen> {
     if (pounds == null || pence == null) return null;
     return pounds * 100 + pence;
   }
+  Future<void> readExpiryLabel() async {
+  if (isSaving) return;
 
+  FocusScope.of(context).unfocus();
+
+  final selectedDate = await Navigator.of(context).push<DateTime>(
+    MaterialPageRoute(
+      builder: (_) => const LabelOcrScreen(),
+    ),
+  );
+
+  if (selectedDate == null || !mounted) return;
+
+  if (selectedDate.isBefore(purchaseDate)) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text(
+          'That date is before the purchase date. '
+          'Check both dates and correct them if needed.',
+        ),
+      ),
+    );
+    return;
+  }
+
+  setState(() {
+    expiryDate = selectedDate;
+    errorMessage = null;
+  });
+}
   Future<void> chooseDate({required bool isExpiry}) async {
     final selected = await showDatePicker(
       context: context,
@@ -395,6 +425,20 @@ OutlinedButton.icon(
                         : 'Expires: ${dateLabel(expiryDate!)}',
                   ),
                 ),
+                const SizedBox(height: 12),
+OutlinedButton.icon(
+  onPressed: isSaving ? null : readExpiryLabel,
+  icon: const Icon(Icons.document_scanner_outlined),
+  label: const Text('Read expiry from photo'),
+),
+const SizedBox(height: 8),
+const Text(
+  'Optional · Review and confirm any recognised date.',
+  style: TextStyle(
+    fontSize: 13,
+    color: Color(0xFF536458),
+  ),
+),
                 if (errorMessage != null) ...[
                   const SizedBox(height: 16),
                   Text(
