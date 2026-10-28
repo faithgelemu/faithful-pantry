@@ -300,3 +300,10 @@ Implemented during the Week 6 lab on 28 October 2026.
 - Returning to the grocery form allowed manual date selection.
 - Blocking the Tesseract library download displayed an error.
 - Unblocking it and retrying without refreshing recognised the date.
+### OCR crop checks
+- Cropped a label photo and recognised the correct printed date.
+- Confirming the suggestion filled the Add grocery expiry field.
+- Cancelling cropping preserved the existing form details.
+- flutter analyze: no issues found.
+- flutter test: all 44 tests passed.
+- Phone testing of the crop feature remains pending.

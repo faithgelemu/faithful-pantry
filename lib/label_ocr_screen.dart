@@ -3,9 +3,10 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
+import 'camera_capture_screen.dart';
+import 'crop_label_screen.dart';
 import 'services/label_ocr_service.dart';
 import 'utils/ocr_date_parser.dart';
-import 'camera_capture_screen.dart';
 
 class LabelOcrScreen extends StatefulWidget {
   const LabelOcrScreen({super.key});
@@ -18,7 +19,9 @@ class _LabelOcrScreenState extends State<LabelOcrScreen> {
   final picker = ImagePicker();
   final service = LabelOcrService();
 
+  Uint8List? originalBytes;
   Uint8List? imageBytes;
+
   String? mimeType;
   String? recognisedText;
   String? errorMessage;
@@ -58,6 +61,50 @@ class _LabelOcrScreenState extends State<LabelOcrScreen> {
     return null;
   }
 
+  void validateImage(Uint8List bytes) {
+    if (bytes.isEmpty || bytes.length > 10 * 1024 * 1024) {
+      throw ArgumentError('Choose an image no larger than 10 MB.');
+    }
+
+    if (detectImageType(bytes) == null) {
+      throw ArgumentError('Choose a JPG or PNG image.');
+    }
+  }
+
+  void showError(String message) {
+    if (!mounted) return;
+
+    setState(() {
+      errorMessage = message;
+    });
+  }
+
+  Future<void> cropAndSelect(Uint8List source) async {
+    validateImage(source);
+
+    if (!mounted) return;
+
+    final cropped = await Navigator.of(context).push<Uint8List>(
+      MaterialPageRoute(
+        builder: (_) => CropLabelScreen(bytes: source),
+      ),
+    );
+
+    // Cancelling keeps any previously selected image unchanged.
+    if (cropped == null || !mounted) return;
+
+    validateImage(cropped);
+
+    setState(() {
+      originalBytes = source;
+      imageBytes = cropped;
+      mimeType = detectImageType(cropped);
+      recognisedText = null;
+      suggestions = [];
+      errorMessage = null;
+    });
+  }
+
   Future<void> choosePhoto() async {
     if (isBusy) return;
 
@@ -78,32 +125,18 @@ class _LabelOcrScreenState extends State<LabelOcrScreen> {
       }
 
       final bytes = await photo.readAsBytes();
-      final type = detectImageType(bytes);
-
-      if (type == null) {
-        throw ArgumentError('Choose a JPG or PNG image.');
-      }
 
       if (!mounted) return;
 
-      setState(() {
-        imageBytes = bytes;
-        mimeType = type;
-        recognisedText = null;
-        suggestions = [];
-      });
+      await cropAndSelect(bytes);
     } on ArgumentError catch (error) {
-      if (!mounted) return;
-
-      setState(() {
-        errorMessage = error.message?.toString();
-      });
+      showError(
+        error.message?.toString() ?? 'Check the selected image.',
+      );
     } catch (_) {
-      if (!mounted) return;
-
-      setState(() {
-        errorMessage = 'Unable to open the photo. Please try again.';
-      });
+      showError(
+        'Unable to open the photo. Try another JPG or PNG image.',
+      );
     } finally {
       if (mounted) {
         setState(() {
@@ -112,35 +145,69 @@ class _LabelOcrScreenState extends State<LabelOcrScreen> {
       }
     }
   }
-Future<void> takePhoto() async {
-  if (isBusy) return;
 
-  final bytes = await Navigator.of(context).push<Uint8List>(
-    MaterialPageRoute(
-      builder: (_) => const CameraCaptureScreen(),
-    ),
-  );
+  Future<void> takePhoto() async {
+    if (isBusy) return;
 
-  if (bytes == null || !mounted) return;
-
-  final type = detectImageType(bytes);
-
-  if (type == null || bytes.length > 10 * 1024 * 1024) {
     setState(() {
-      errorMessage =
-          'Choose a JPG or PNG photo no larger than 10 MB.';
+      isBusy = true;
+      errorMessage = null;
     });
-    return;
+
+    try {
+      final bytes = await Navigator.of(context).push<Uint8List>(
+        MaterialPageRoute(
+          builder: (_) => const CameraCaptureScreen(),
+        ),
+      );
+
+      if (bytes == null || !mounted) return;
+
+      await cropAndSelect(bytes);
+    } on ArgumentError catch (error) {
+      showError(
+        error.message?.toString() ?? 'Check the captured image.',
+      );
+    } catch (_) {
+      showError(
+        'Unable to use this photo. Try again or choose an existing image.',
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          isBusy = false;
+        });
+      }
+    }
   }
 
-  setState(() {
-    imageBytes = bytes;
-    mimeType = type;
-    recognisedText = null;
-    suggestions = [];
-    errorMessage = null;
-  });
-}
+  Future<void> adjustCrop() async {
+    final source = originalBytes;
+
+    if (isBusy || source == null) return;
+
+    setState(() {
+      isBusy = true;
+      errorMessage = null;
+    });
+
+    try {
+      await cropAndSelect(source);
+    } on ArgumentError catch (error) {
+      showError(
+        error.message?.toString() ?? 'Check the cropped image.',
+      );
+    } catch (_) {
+      showError('Unable to adjust the crop. Please try again.');
+    } finally {
+      if (mounted) {
+        setState(() {
+          isBusy = false;
+        });
+      }
+    }
+  }
+
   Future<void> readPhoto() async {
     if (isBusy || imageBytes == null || mimeType == null) return;
 
@@ -166,13 +233,10 @@ Future<void> takePhoto() async {
         suggestions = dates;
       });
     } catch (_) {
-      if (!mounted) return;
-
-      setState(() {
-        errorMessage =
-            'Unable to read the photo. Check your connection '
-            'and try again, or enter the date manually.';
-      });
+      showError(
+        'Unable to read the photo. Check your connection '
+        'and try again, or enter the date manually.',
+      );
     } finally {
       if (mounted) {
         setState(() {
@@ -206,9 +270,9 @@ Future<void> takePhoto() async {
                 ),
                 const SizedBox(height: 12),
                 const Text(
-                  'Choose a clear, close-up JPG or PNG of the date. '
-                  'Recognition runs in your browser; OCR library '
-                  'and language files require downloads.',
+                  'Choose or photograph a label, then crop around '
+                  'its printed date. Recognition runs in your browser; '
+                  'OCR library and language files require downloads.',
                 ),
                 const SizedBox(height: 16),
                 OutlinedButton.icon(
@@ -221,20 +285,28 @@ Future<void> takePhoto() async {
                   ),
                 ),
                 const SizedBox(height: 12),
-OutlinedButton.icon(
-  onPressed: isBusy ? null : takePhoto,
-  icon: const Icon(Icons.camera_alt_outlined),
-  label: const Text('Take photo'),
-),
+                OutlinedButton.icon(
+                  onPressed: isBusy ? null : takePhoto,
+                  icon: const Icon(Icons.camera_alt_outlined),
+                  label: const Text('Take photo'),
+                ),
                 if (imageBytes != null) ...[
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 20),
+                  const Text(
+                    'Selected label area',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
                   ClipRRect(
                     borderRadius: BorderRadius.circular(16),
                     child: Image.memory(
                       imageBytes!,
                       height: 220,
                       fit: BoxFit.contain,
-                      semanticLabel: 'Selected food label',
+                      semanticLabel: 'Cropped food label',
                       errorBuilder: (context, error, stackTrace) {
                         return const Text(
                           'Preview unavailable. Try another photo.',
@@ -242,11 +314,17 @@ OutlinedButton.icon(
                       },
                     ),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 12),
+                  OutlinedButton.icon(
+                    onPressed: isBusy ? null : adjustCrop,
+                    icon: const Icon(Icons.crop),
+                    label: const Text('Adjust crop'),
+                  ),
+                  const SizedBox(height: 12),
                   FilledButton.icon(
                     onPressed: isBusy ? null : readPhoto,
                     icon: const Icon(Icons.document_scanner_outlined),
-                    label: const Text('Read label'),
+                    label: const Text('Read selected area'),
                   ),
                 ],
                 if (isBusy) ...[
@@ -254,8 +332,8 @@ OutlinedButton.icon(
                   const LinearProgressIndicator(),
                   const SizedBox(height: 8),
                   const Text(
-                    'Please wait. The first recognition '
-                    'may take longer while files download.',
+                    'Please wait. The first recognition may take '
+                    'longer while files download.',
                   ),
                 ],
                 if (errorMessage != null) ...[
@@ -281,16 +359,17 @@ OutlinedButton.icon(
                   ),
                   const SizedBox(height: 8),
                   const Text(
-                    'Check the photo carefully. A detected date '
-                    'could be a packing date rather than expiry. '
-                    'Numeric dates are interpreted as UK day/month/year. '
-                    'Keep the distinction between Use by and Best before.',
+                    'Compare the suggestion with the photo. '
+                    'It could be a packing date rather than expiry. '
+                    'Numeric dates use UK day/month/year. '
+                    'Use by and Best before have different meanings.',
                   ),
                   const SizedBox(height: 12),
                   if (suggestions.isEmpty)
                     const Text(
-                      'No supported complete date found. '
-                      'Try a clearer photo or go back to enter it manually.',
+                      'No supported complete date found. Adjust '
+                      'the crop, try a clearer photo, or go back '
+                      'to enter the date manually.',
                     )
                   else
                     ...suggestions.map((suggestion) {
@@ -298,7 +377,8 @@ OutlinedButton.icon(
                         child: Padding(
                           padding: const EdgeInsets.all(16),
                           child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            crossAxisAlignment:
+                                CrossAxisAlignment.stretch,
                             children: [
                               Text(
                                 dateLabel(suggestion.date),
@@ -317,11 +397,13 @@ OutlinedButton.icon(
                                 ),
                               const SizedBox(height: 12),
                               OutlinedButton(
-                                onPressed: () {
-                                  Navigator.of(context).pop(
-                                    suggestion.date,
-                                  );
-                                },
+                                onPressed: isBusy
+                                    ? null
+                                    : () {
+                                        Navigator.of(context).pop(
+                                          suggestion.date,
+                                        );
+                                      },
                                 child: const Text('Use this date'),
                               ),
                             ],
