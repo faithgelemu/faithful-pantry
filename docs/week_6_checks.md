@@ -313,3 +313,17 @@ Implemented during the Week 6 lab on 28 October 2026.
 - Captured a photo, confirmed it and cropped the label area.
 - OCR suggested the correct printed date for the tested image.
 - Recognition accuracy across other packaging remains unverified.
+
+### Expanded OCR date-format checks
+- Added spaced numeric dates and month/year suggestions.
+- Month/year suggestions display an explicit assumed-day notice.
+- Added best-before/use-by label matching and production-date filtering.
+- All 24 date-parser tests passed.
+- Local photo checks passed for month/year packaging examples.
+- Wrap label suggested 14/11/2026 and filled the form when cropped
+  with its Best before wording.
+- Date-only cropping sometimes produced joined text: 141126.
+  Unlabelled compact numeric dates remain unsupported.
+- flutter analyze: no issues found.
+- Full test suite: all 56 tests passed.
+- Updated parser still requires deployment and phone retesting.

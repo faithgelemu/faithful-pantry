@@ -391,6 +391,12 @@ class _LabelOcrScreenState extends State<LabelOcrScreen> {
                               Text(
                                 'Read as: ${suggestion.originalText}',
                               ),
+                              Text('Label: ${suggestion.label}'),
+if (suggestion.assumedDay)
+  const Text(
+    'Day not printed — last day of month used. '
+    'Check the label before confirming.',
+  ),
                               if (suggestion.assumedYear)
                                 const Text(
                                   'Year missing — current year assumed.',
