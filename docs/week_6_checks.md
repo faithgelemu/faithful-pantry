@@ -307,3 +307,9 @@ Implemented during the Week 6 lab on 28 October 2026.
 - flutter analyze: no issues found.
 - flutter test: all 44 tests passed.
 - Phone testing of the crop feature remains pending.
+
+### Hosted phone OCR check
+- Tested the deployed app in normal Safari on iPhone.
+- Captured a photo, confirmed it and cropped the label area.
+- OCR suggested the correct printed date for the tested image.
+- Recognition accuracy across other packaging remains unverified.
