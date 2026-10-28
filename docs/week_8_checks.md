@@ -89,3 +89,8 @@ Tested in Firebase Rules Playground without changing deployed rules.
 
 These verify the listed ownership scenarios, not field validation
 or every possible database operation.
+
+### Release update check
+- New worker waited while the previous release remained open.
+- After closing all app windows and reopening, it activated normally.
+- The page returned app-release marker update-check-1.

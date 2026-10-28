@@ -204,8 +204,8 @@ or OCR. Reliable cloud operations require a connection.
 
 A new service worker waits for existing controlled app windows to
 close before activation. Close all app tabs/windows and reopen online
-when checking a new release. Update behaviour still needs a dedicated
-release-to-release verification.
+when checking a new release. Release-to-release updating was verified in Chrome by checking
+worker activation and the updated page's release marker.
 
 ## Browser and device coverage
 
