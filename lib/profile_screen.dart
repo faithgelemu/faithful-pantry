@@ -2,6 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import 'preferred_name_screen.dart';
+import 'push_notification_screen.dart';
 import 'reset_password_screen.dart';
 import 'services/settings_service.dart';
 import 'weekly_budget_screen.dart';
@@ -21,6 +22,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   bool isOpeningBudget = false;
   bool isOpeningName = false;
+  bool isOpeningNotifications = false;
 
   @override
   void initState() {
@@ -101,6 +103,28 @@ class _ProfileScreenState extends State<ProfileScreen> {
       if (mounted) {
         setState(() {
           isOpeningBudget = false;
+        });
+      }
+    }
+  }
+
+  Future<void> openNotifications() async {
+    if (isOpeningNotifications) return;
+
+    setState(() {
+      isOpeningNotifications = true;
+    });
+
+    try {
+      await Navigator.of(context).push<void>(
+        MaterialPageRoute(
+          builder: (_) => const PushNotificationScreen(),
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          isOpeningNotifications = false;
         });
       }
     }
@@ -338,6 +362,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
             const SizedBox(height: 14),
             budgetSetting(),
+            const SizedBox(height: 16),
+            settingCard(
+              icon: Icons.notifications_outlined,
+              title: 'Push notifications',
+              description:
+                  'Try optional notifications on this installation. '
+                  'Automatic expiry reminders are not scheduled yet.',
+              action: OutlinedButton.icon(
+                onPressed: isOpeningNotifications
+                    ? null
+                    : openNotifications,
+                icon: const Icon(Icons.notifications_active_outlined),
+                label: const Text('Notification experiment'),
+              ),
+            ),
             const SizedBox(height: 16),
             settingCard(
               icon: Icons.lock_outline,
