@@ -1,0 +1,46 @@
+name: Expiry reminder dry run
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: expiry-reminders
+  cancel-in-progress: false
+
+jobs:
+  dry-run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      - name: Install reminder dependencies
+        working-directory: tools/reminders
+        run: npm ci --ignore-scripts
+
+      - name: Test reminder rules
+        run: node --test tools/reminders/expiry-reminders.test.cjs
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_REMINDER_SERVICE_ACCOUNT }}
+          project_id: faithful-pantry
+
+      - name: Preview reminder counts
+        run: node tools/reminders/expiry-reminders.cjs
