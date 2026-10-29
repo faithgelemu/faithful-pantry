@@ -1,7 +1,13 @@
-name: Expiry reminder dry run
+name: Expiry reminders
 
 on:
   workflow_dispatch:
+    inputs:
+      send_reminder:
+        description: "Send at most one real reminder"
+        required: true
+        default: false
+        type: boolean
 
 permissions:
   contents: read
@@ -11,7 +17,7 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  dry-run:
+  reminder:
     runs-on: ubuntu-24.04
     timeout-minutes: 5
 
@@ -33,8 +39,11 @@ jobs:
         working-directory: tools/reminders
         run: npm ci --ignore-scripts
 
-      - name: Test reminder rules
-        run: node --test tools/reminders/expiry-reminders.test.cjs
+      - name: Test reminder rules and delivery protection
+        run: >
+          node --test
+          tools/reminders/expiry-reminders.test.cjs
+          tools/reminders/delivery-protection.test.cjs
 
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v3
@@ -43,5 +52,12 @@ jobs:
           service_account: ${{ vars.GCP_REMINDER_SERVICE_ACCOUNT }}
           project_id: faithful-pantry
 
-      - name: Preview reminder counts
-        run: node tools/reminders/expiry-reminders.cjs
+      - name: Run reminder job
+        env:
+          SEND_REMINDER: ${{ inputs.send_reminder }}
+        run: |
+          if [ "$SEND_REMINDER" = "true" ]; then
+            node tools/reminders/expiry-reminders.cjs --send
+          else
+            node tools/reminders/expiry-reminders.cjs
+          fi
