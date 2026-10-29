@@ -50,3 +50,17 @@
   recreate the registration.
 - An actual FCM token rotation has not yet been verified.
 - Analysis reported no issues; all 56 existing tests passed.
+
+## Server-triggered expiry reminders
+- GitHub Actions authenticated using short-lived Google credentials.
+- Dry-run eligibility matched the app's Expiring Soon view.
+- Manual server-triggered reminders arrived on laptop and iPhone.
+- With both daily reservations present, another send run skipped
+  both registrations and sent zero messages.
+- Added datastore.databases.get after a permission-denied failure
+  on the existing-reservation transaction path.
+- All 12 Node tests passed.
+- Sending remains manual, limited to one attempt per run.
+- Automatic scheduling is not enabled.
+- Reservations favour avoiding duplicates; an uncertain attempt
+  can cause a missed reminder for that day.
