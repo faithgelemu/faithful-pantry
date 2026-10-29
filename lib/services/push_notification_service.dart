@@ -153,6 +153,66 @@ class PushNotificationService {
       _isBusy = false;
     }
   }
+    Future<void> refreshExistingRegistration() async {
+    if (!kIsWeb || _isBusy) return;
+
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    _isBusy = true;
+
+    try {
+      final saved = await _preferences.getString(_registrationKey);
+      if (saved == null) return;
+
+      final decoded = jsonDecode(saved);
+
+      if (decoded is! Map<String, dynamic>) return;
+
+      final uid = decoded['uid'];
+      final documentId = decoded['documentId'];
+
+      if (uid != user.uid || documentId is! String) return;
+
+      final settings = await messaging.getNotificationSettings();
+
+      // Refresh must never request notification permission.
+      if (settings.authorizationStatus !=
+          AuthorizationStatus.authorized) {
+        return;
+      }
+
+      _checkUser(user.uid);
+
+      final token = await messaging.getToken(vapidKey: vapidKey);
+
+      if (token == null || token.isEmpty) return;
+
+      // Another tab may have disabled notifications while we waited.
+      final latest = await _preferences.getString(_registrationKey);
+
+      if (latest != saved) return;
+
+      _checkUser(user.uid);
+
+      final document = _registrationDocument(user.uid, documentId);
+
+      await FirebaseFirestore.instance.runTransaction((transaction) async {
+        final snapshot = await transaction.get(document);
+        final data = snapshot.data();
+
+        // Do not recreate a registration deleted during logout.
+        if (!snapshot.exists || data?['enabled'] != true) return;
+
+        transaction.update(document, {
+          'token': token,
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+      });
+    } finally {
+      _isBusy = false;
+    }
+  }
 
   Future<void> prepareForLogout() async {
     // Does not request permission or create a token.

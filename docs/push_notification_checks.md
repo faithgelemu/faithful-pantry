@@ -42,3 +42,11 @@
 - Its registration appeared under Account A's pushTokens collection.
 - Logout returned the iPhone to Login and removed its registration.
 - Other device registrations remained unchanged.
+
+## Registration synchronisation
+- Startup refreshed updatedAt on the existing registration document.
+- Returning to the app refreshed updatedAt.
+- After logout, logging in and refreshing without enabling did not
+  recreate the registration.
+- An actual FCM token rotation has not yet been verified.
+- Analysis reported no issues; all 56 existing tests passed.

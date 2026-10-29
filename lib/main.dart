@@ -10,6 +10,7 @@ import 'home_dashboard.dart';
 import 'pantry_screen.dart';
 import 'profile_screen.dart';
 import 'services/push_notification_service.dart';
+import 'widgets/push_registration_refresh.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -186,9 +187,13 @@ class FaithfulPantryApp extends StatelessWidget {
 
           final user = snapshot.data;
 
-          if (user != null) {
-            return HomeScreen(key: ValueKey(user.uid));
-          }
+         if (user != null) {
+          return PushRegistrationRefresh(
+          key: ValueKey(user.uid),
+          userId: user.uid,
+          child: HomeScreen(key: ValueKey(user.uid)),
+          );
+        }
 
           return const AuthScreen();
         },
