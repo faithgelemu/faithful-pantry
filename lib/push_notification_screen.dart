@@ -19,16 +19,20 @@ class _PushNotificationScreenState
   bool isBusy = false;
   String? token;
   String? errorMessage;
+
   String statusMessage =
-      'Choose Enable notifications to request permission '
-      'and register this browser installation.';
+      'Choose Enable notifications to register this installation '
+      'for your signed-in account. Opening this screen does not '
+      'enable notifications.';
 
   Future<void> enableNotifications() async {
     if (isBusy) return;
 
     setState(() {
       isBusy = true;
+      token = null;
       errorMessage = null;
+      statusMessage = 'Registering notifications for your account...';
     });
 
     try {
@@ -39,31 +43,22 @@ class _PushNotificationScreenState
       setState(() {
         token = result;
         statusMessage =
-            'This browser installation is registered. '
+            'This installation is registered for your account. '
             'Automatic expiry reminders are not scheduled yet.';
       });
     } on StateError catch (error) {
-      if (!mounted) return;
-
-      setState(() {
-        errorMessage = error.message;
-      });
+      showError(error.message);
     } on FirebaseException catch (_) {
-      if (!mounted) return;
-
-      setState(() {
-        errorMessage =
-            'Notification registration failed. Check your connection '
-            'and notification configuration, then try again.';
-      });
+      showError(
+        'Unable to confirm account registration. Check your connection '
+        'and Firestore access rules, then try again.',
+      );
     } catch (_) {
-      if (!mounted) return;
-
-      setState(() {
-        errorMessage =
-            'Unable to enable notifications. On iPhone, open the '
-            'installed Home Screen app and try again.';
-      });
+      showError(
+        'Unable to confirm notification registration. '
+        'Check your connection and try again. On iPhone, '
+        'use the installed Home Screen app.',
+      );
     } finally {
       if (mounted) {
         setState(() {
@@ -78,7 +73,9 @@ class _PushNotificationScreenState
 
     setState(() {
       isBusy = true;
+      token = null;
       errorMessage = null;
+      statusMessage = 'Removing this installation’s registration...';
     });
 
     try {
@@ -87,19 +84,18 @@ class _PushNotificationScreenState
       if (!mounted) return;
 
       setState(() {
-        token = null;
         statusMessage =
-            'This installation’s notification registration was removed. '
-            'Browser permission is managed separately in device settings.';
+            'This installation’s registration was removed. '
+            'Your other devices are unchanged. Browser permission '
+            'is managed separately in device settings.';
       });
+    } on StateError catch (error) {
+      showError(error.message);
     } catch (_) {
-      if (!mounted) return;
-
-      setState(() {
-        errorMessage =
-            'Unable to confirm notifications were disabled. '
-            'Check your connection and try again.';
-      });
+      showError(
+        'Unable to finish notification cleanup. '
+        'Check your connection and try disabling again.',
+      );
     } finally {
       if (mounted) {
         setState(() {
@@ -109,8 +105,21 @@ class _PushNotificationScreenState
     }
   }
 
+  void showError(String message) {
+    if (!mounted) return;
+
+    setState(() {
+      token = null;
+      errorMessage = message;
+      statusMessage =
+          'The operation was not confirmed. '
+          'You can retry when connected.';
+    });
+  }
+
   Future<void> copyToken() async {
     final value = token;
+
     if (value == null || isBusy) return;
 
     try {
@@ -128,9 +137,11 @@ class _PushNotificationScreenState
     } catch (_) {
       if (!mounted) return;
 
-      setState(() {
-        errorMessage = 'Unable to copy the test token.';
-      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Unable to copy the test token.'),
+        ),
+      );
     }
   }
 
@@ -155,7 +166,7 @@ class _PushNotificationScreenState
                 ),
                 const SizedBox(height: 20),
                 const Text(
-                  'Try push notifications',
+                  'Your notification preferences',
                   style: TextStyle(
                     fontSize: 26,
                     fontWeight: FontWeight.w800,
@@ -163,8 +174,8 @@ class _PushNotificationScreenState
                 ),
                 const SizedBox(height: 12),
                 const Text(
-                  'Enable notifications only if you want to test them. '
-                  'On iPhone, use the app installed on your Home Screen.',
+                  'Enable notifications only if you want to receive them. '
+                  'On iPhone, open the app installed on your Home Screen.',
                 ),
                 const SizedBox(height: 20),
                 Semantics(
@@ -209,9 +220,14 @@ class _PushNotificationScreenState
                 ],
                 const SizedBox(height: 24),
                 const Text(
-                  'This experiment registers this browser installation, '
-                  'not a particular account. Do not send personal grocery '
-                  'details yet. The token is not stored in Firestore.',
+                  'Enabling links this installation to your account. '
+                  'Logging out removes its registration; enable again '
+                  'after logging back in if you want notifications.',
+                ),
+                const SizedBox(height: 12),
+                const Text(
+                  'This remains an experiment. Use generic test messages '
+                  'until account-change and token-refresh checks are complete.',
                 ),
               ],
             ),

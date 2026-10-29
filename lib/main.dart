@@ -9,6 +9,7 @@ import 'firebase_options.dart';
 import 'home_dashboard.dart';
 import 'pantry_screen.dart';
 import 'profile_screen.dart';
+import 'services/push_notification_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -227,6 +228,8 @@ class _HomeScreenState extends State<HomeScreen> {
   HomeDetail? homeDetail;
   LocalHistoryEntry? detailHistory;
 
+  bool isLoggingOut = false;
+
   static const titles = [
     'Faithful Pantry',
     'Add groceries',
@@ -235,7 +238,7 @@ class _HomeScreenState extends State<HomeScreen> {
   ];
 
   void openHomeDetail(HomeDetail detail) {
-    if (homeDetail != null) return;
+    if (homeDetail != null || isLoggingOut) return;
 
     final route = ModalRoute.of(context);
     if (route == null) return;
@@ -265,6 +268,8 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void selectTab(int index) {
+    if (isLoggingOut) return;
+
     // Leaving a detail view returns Home to its dashboard.
     closeHomeDetail();
 
@@ -341,19 +346,43 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> logOut() async {
+    if (isLoggingOut) return;
+
+    setState(() {
+      isLoggingOut = true;
+    });
+
+    var notificationCleanupFinished = false;
+
     try {
+      await PushNotificationService().prepareForLogout();
+      notificationCleanupFinished = true;
+
       await FirebaseAuth.instance.signOut();
 
       if (!mounted) return;
+
       closeHomeDetail();
     } catch (_) {
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Unable to log out. Please try again.'),
+        SnackBar(
+          content: Text(
+            notificationCleanupFinished
+                ? 'Unable to log out. Please try again.'
+                : 'Unable to finish notification cleanup. '
+                    'You are still signed in. '
+                    'Check your connection and try logging out again.',
+          ),
         ),
       );
+    } finally {
+      if (mounted) {
+        setState(() {
+          isLoggingOut = false;
+        });
+      }
     }
   }
 
@@ -372,17 +401,30 @@ class _HomeScreenState extends State<HomeScreen> {
         leading: homeDetail == null
             ? null
             : BackButton(
-                onPressed: closeHomeDetail,
+                onPressed: isLoggingOut ? null : closeHomeDetail,
               ),
         actions: [
-          IconButton(
-            tooltip: 'Log out',
-            icon: const Icon(Icons.logout),
-            onPressed: logOut,
-          ),
+          if (isLoggingOut)
+            const Padding(
+              padding: EdgeInsets.all(14),
+              child: SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+            )
+          else
+            IconButton(
+              tooltip: 'Log out',
+              icon: const Icon(Icons.logout),
+              onPressed: logOut,
+            ),
         ],
       ),
-      body: currentPage,
+      body: AbsorbPointer(
+        absorbing: isLoggingOut,
+        child: currentPage,
+      ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: selectedTab,
         onDestinationSelected: selectTab,

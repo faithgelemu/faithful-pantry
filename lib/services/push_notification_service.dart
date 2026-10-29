@@ -1,10 +1,43 @@
+import 'dart:convert';
+
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:crypto/crypto.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class PushNotificationService {
-  static const vapidKey = 'BI-euvdXz6UWmBrBVzjPW0CzoserKOJ-oVc-LRx4i3NZr1aW2y7-wnMk0C6zYe02EewLR0OBK-lPdiEILgmi2P8';
+  static const vapidKey =
+      'BI-euvdXz6UWmBrBVzjPW0CzoserKOJ-oVc-LRx4i3NZr1aW2y7-wnMk0C6zYe02EewLR0OBK-lPdiEILgmi2P8';
 
-  final FirebaseMessaging messaging = FirebaseMessaging.instance;
+  static const _registrationKey = 'pantry_push_registration_v1';
+
+  // Shared between service instances in this running app.
+  static bool _isBusy = false;
+
+  final _preferences = SharedPreferencesAsync();
+
+  FirebaseMessaging get messaging => FirebaseMessaging.instance;
+
+  DocumentReference<Map<String, dynamic>> _registrationDocument(
+    String uid,
+    String documentId,
+  ) {
+    return FirebaseFirestore.instance
+        .collection('users')
+        .doc(uid)
+        .collection('pushTokens')
+        .doc(documentId);
+  }
+
+  void _checkUser(String uid) {
+    if (FirebaseAuth.instance.currentUser?.uid != uid) {
+      throw StateError(
+        'Your account changed. Please reopen notifications and try again.',
+      );
+    }
+  }
 
   Future<String> enable() async {
     if (!kIsWeb) {
@@ -13,42 +46,156 @@ class PushNotificationService {
       );
     }
 
-    if (vapidKey == 'PASTE_YOUR_PUBLIC_VAPID_KEY_HERE') {
-      throw StateError('The public notification key has not been configured.');
-    }
-
-    // Call enable directly from a button press so the permission
-    // request follows an explicit user action.
-    final settings = await messaging.requestPermission(
-      alert: true,
-      badge: true,
-      sound: true,
-    );
-
-    if (settings.authorizationStatus != AuthorizationStatus.authorized) {
+    if (_isBusy) {
       throw StateError(
-        'Notifications are not enabled. You can change permission '
-        'in your browser or device settings.',
+        'Another notification action is still running. Please wait.',
       );
     }
 
-    // The web SDK registers firebase-messaging-sw.js using its
-    // separate messaging scope, alongside our offline worker.
-    final token = await messaging.getToken(
-      vapidKey: vapidKey,
-    );
+    final user = FirebaseAuth.instance.currentUser;
 
-    if (token == null || token.isEmpty) {
+    if (user == null) {
+      throw StateError('Please log in before enabling notifications.');
+    }
+
+    if (vapidKey.trim().isEmpty ||
+        vapidKey == 'PASTE_YOUR_PUBLIC_VAPID_KEY_HERE') {
       throw StateError(
-        'Unable to register this device for notifications. '
-        'Check your connection and try again.',
+        'The public notification key has not been configured.',
       );
     }
 
-    return token;
+    _isBusy = true;
+
+    try {
+      // Keep this request directly connected to the user's button press.
+      final settings = await messaging.requestPermission(
+        alert: true,
+        badge: true,
+        sound: true,
+      );
+
+      if (settings.authorizationStatus !=
+          AuthorizationStatus.authorized) {
+        throw StateError(
+          'Notifications are not enabled. You can change permission '
+          'in your browser or device settings.',
+        );
+      }
+
+      _checkUser(user.uid);
+
+      // Retire any previous registration before creating a new one.
+      await _removeRegistration();
+
+      _checkUser(user.uid);
+
+      final token = await messaging.getToken(vapidKey: vapidKey);
+
+      if (token == null || token.isEmpty) {
+        throw StateError(
+          'Unable to register this installation. '
+          'Check your connection and try again.',
+        );
+      }
+
+      final documentId = sha256.convert(utf8.encode(token)).toString();
+
+      // Save the cleanup reference before attempting the cloud write.
+      // The raw delivery token is not stored in shared preferences.
+      await _preferences.setString(
+        _registrationKey,
+        jsonEncode({
+          'uid': user.uid,
+          'documentId': documentId,
+        }),
+      );
+
+      try {
+        _checkUser(user.uid);
+
+        await _registrationDocument(user.uid, documentId).set({
+          'token': token,
+          'enabled': true,
+          'platform': 'web',
+          'updatedAt': FieldValue.serverTimestamp(),
+        }).timeout(const Duration(seconds: 20));
+
+        _checkUser(user.uid);
+      } catch (_) {
+        // A failed or delayed database write must not leave a live
+        // token ready to receive account-specific messages.
+        // Keep the local cleanup reference so removal can be retried.
+        await messaging.deleteToken();
+        rethrow;
+      }
+
+      return token;
+    } finally {
+      _isBusy = false;
+    }
   }
 
   Future<void> disable() async {
-    await messaging.deleteToken();
+    if (!kIsWeb) return;
+
+    if (_isBusy) {
+      throw StateError(
+        'Another notification action is still running. Please wait.',
+      );
+    }
+
+    _isBusy = true;
+
+    try {
+      await _removeRegistration();
+    } finally {
+      _isBusy = false;
+    }
+  }
+
+  Future<void> prepareForLogout() async {
+    // Does not request permission or create a token.
+    await disable();
+  }
+
+  Future<void> _removeRegistration() async {
+    final saved = await _preferences.getString(_registrationKey);
+
+    // Also handles registrations made by our earlier experiment,
+    // which did not save a local cleanup reference.
+    final settings = await messaging.getNotificationSettings();
+
+    if (saved != null ||
+        settings.authorizationStatus == AuthorizationStatus.authorized) {
+      // Invalidate delivery first, even if Firestore cleanup later fails.
+      await messaging.deleteToken();
+    }
+
+    if (saved == null) return;
+
+    final decoded = jsonDecode(saved);
+
+    if (decoded is! Map<String, dynamic>) {
+      throw StateError('Unable to read the notification registration.');
+    }
+
+    final uid = decoded['uid'];
+    final documentId = decoded['documentId'];
+
+    if (uid is! String || documentId is! String) {
+      throw StateError('Unable to read the notification registration.');
+    }
+
+    if (FirebaseAuth.instance.currentUser?.uid == uid) {
+      await _registrationDocument(uid, documentId)
+          .delete()
+          .timeout(const Duration(seconds: 20));
+    }
+
+    // If another account is now signed in, its rules cannot delete
+    // the previous owner's document. The old token was invalidated
+    // above; the future sender must remove invalid-token records.
+    await _preferences.remove(_registrationKey);
   }
 }
