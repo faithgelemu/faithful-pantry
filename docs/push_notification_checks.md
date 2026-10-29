@@ -36,3 +36,9 @@
 - Explicitly enabled for B; registration appeared only under B.
 - Logged out of B; its registration was removed and Login appeared.
 - Unexpected account changes across tabs remain untested.
+
+## Installed iPhone account-linking checks
+- Enabling linked the iPhone installation to Account A.
+- Its registration appeared under Account A's pushTokens collection.
+- Logout returned the iPhone to Login and removed its registration.
+- Other device registrations remained unchanged.
