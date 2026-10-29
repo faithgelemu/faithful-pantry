@@ -1,10 +1,15 @@
 name: Expiry reminders
 
 on:
+  schedule:
+    # Daily at 09:17 UTC:
+    # 09:17 UK winter time, 10:17 UK summer time.
+    - cron: "17 9 * * *"
+
   workflow_dispatch:
     inputs:
       send_reminder:
-        description: "Send at most one real reminder"
+        description: "Send real reminders (maximum 10 attempts)"
         required: true
         default: false
         type: boolean
@@ -54,9 +59,10 @@ jobs:
 
       - name: Run reminder job
         env:
+          EVENT_NAME: ${{ github.event_name }}
           SEND_REMINDER: ${{ inputs.send_reminder }}
         run: |
-          if [ "$SEND_REMINDER" = "true" ]; then
+          if [ "$EVENT_NAME" = "schedule" ] || [ "$SEND_REMINDER" = "true" ]; then
             node tools/reminders/expiry-reminders.cjs --send
           else
             node tools/reminders/expiry-reminders.cjs

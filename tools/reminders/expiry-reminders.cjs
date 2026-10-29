@@ -10,7 +10,7 @@ const SOON_DAYS = 3;
 
 const MAX_INSTALLATIONS = 100;
 const MAX_PANTRY_ITEMS = 1000;
-const MAX_SEND_ATTEMPTS = 1;
+const MAX_SEND_ATTEMPTS = 10;
 
 function calendarDate(now) {
   const parts = new Intl.DateTimeFormat("en-GB", {
