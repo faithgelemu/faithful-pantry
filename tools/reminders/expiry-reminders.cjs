@@ -330,12 +330,25 @@ async function main() {
 }
 
 if (require.main === module) {
-  main().catch(() => {
-    // Do not log credentials, tokens, account IDs or grocery contents.
-    console.error(
-      "Reminder job failed. Check authentication, permissions, " +
-      "scan limits and delivery records. Reserved attempts are not retried."
-    );
+  main().catch((error) => {
+    const rawCode = error?.code;
+
+    const safeCode =
+      typeof rawCode === "number" ||
+      (typeof rawCode === "string" &&
+        /^[A-Z_]{2,50}$/.test(rawCode))
+        ? rawCode
+        : "unavailable";
+
+    const status = error?.response?.status;
+
+    console.error(JSON.stringify({
+      result: "reminder-job-failed",
+      errorCode: safeCode,
+      httpStatus: Number.isInteger(status) ? status : null,
+      errorType: error instanceof TypeError ? "TypeError" : "Error"
+    }));
+
     process.exitCode = 1;
   });
 }
