@@ -29,3 +29,10 @@
 - These checks were performed on the tested browser installation.
 - Cross-account switching, token refresh and the updated iPhone
   account-linking flow remain unverified.
+
+  ## Same-browser account switching
+- Logged out of Account A; its tested registration was removed.
+- Logged into Account B without enabling; no registration appeared.
+- Explicitly enabled for B; registration appeared only under B.
+- Logged out of B; its registration was removed and Login appeared.
+- Unexpected account changes across tabs remain untested.
