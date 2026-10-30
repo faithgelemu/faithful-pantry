@@ -363,20 +363,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
             const SizedBox(height: 14),
             budgetSetting(),
             const SizedBox(height: 16),
-            settingCard(
-              icon: Icons.notifications_outlined,
-              title: 'Push notifications',
-              description:
-                  'Try optional notifications on this installation. '
-                  'Automatic expiry reminders are not scheduled yet.',
-              action: OutlinedButton.icon(
-                onPressed: isOpeningNotifications
-                    ? null
-                    : openNotifications,
-                icon: const Icon(Icons.notifications_active_outlined),
-                label: const Text('Notification experiment'),
-              ),
-            ),
+           settingCard(
+  icon: Icons.notifications_outlined,
+  title: 'Expiry reminders',
+  description:
+      'Get optional daily reminders for groceries '
+      'approaching their recorded expiry dates.',
+  action: OutlinedButton.icon(
+    onPressed: isOpeningNotifications
+        ? null
+        : openNotifications,
+    icon: const Icon(Icons.notifications_active_outlined),
+    label: const Text('Manage reminders'),
+  ),
+),
             const SizedBox(height: 16),
             settingCard(
               icon: Icons.lock_outline,

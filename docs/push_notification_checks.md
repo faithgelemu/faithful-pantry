@@ -64,3 +64,15 @@
 - Automatic scheduling is not enabled.
 - Reservations favour avoiding duplicates; an uncertain attempt
   can cause a missed reminder for that day.
+
+  ## Reminder interface checks
+- Profile shows Expiry reminders and Manage reminders.
+- Removed experimental wording and the delivery-token copy control.
+- Narrow layout and back navigation passed locally.
+- Updated wording verified on the hosted app.
+- flutter analyze: no issues.
+- flutter test: all 56 tests passed.
+- Release build, offline asset preparation and hosting deployment passed.
+- First automatic scheduled delivery remains unverified.
+- Installed iPhone showed the updated reminder interface after closing
+  app windows and reopening online.

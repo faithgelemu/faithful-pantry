@@ -1,6 +1,5 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 import 'services/push_notification_service.dart';
 
@@ -17,47 +16,43 @@ class _PushNotificationScreenState
   final service = PushNotificationService();
 
   bool isBusy = false;
-  String? token;
   String? errorMessage;
 
   String statusMessage =
-      'Choose Enable notifications to register this installation '
-      'for your signed-in account. Opening this screen does not '
-      'enable notifications.';
+      'Choose Enable daily reminders to receive notifications '
+      'on this device. Opening this page does not change your preference.';
 
   Future<void> enableNotifications() async {
     if (isBusy) return;
 
     setState(() {
       isBusy = true;
-      token = null;
       errorMessage = null;
-      statusMessage = 'Registering notifications for your account...';
+      statusMessage = 'Enabling reminders...';
     });
 
     try {
-      final result = await service.enable();
+      await service.enable();
 
       if (!mounted) return;
 
       setState(() {
-        token = result;
         statusMessage =
-            'This installation is registered for your account. '
-            'Automatic expiry reminders are not scheduled yet.';
+            'Daily reminders are enabled on this device '
+            'for your signed-in account.';
       });
     } on StateError catch (error) {
       showError(error.message);
     } on FirebaseException catch (_) {
       showError(
-        'Unable to confirm account registration. Check your connection '
-        'and Firestore access rules, then try again.',
+        'Unable to enable reminders. Check your connection '
+        'and try again.',
       );
     } catch (_) {
       showError(
-        'Unable to confirm notification registration. '
+        'Unable to confirm reminders are enabled. '
         'Check your connection and try again. On iPhone, '
-        'use the installed Home Screen app.',
+        'use the app installed on your Home Screen.',
       );
     } finally {
       if (mounted) {
@@ -73,9 +68,8 @@ class _PushNotificationScreenState
 
     setState(() {
       isBusy = true;
-      token = null;
       errorMessage = null;
-      statusMessage = 'Removing this installation’s registration...';
+      statusMessage = 'Turning off reminders...';
     });
 
     try {
@@ -85,16 +79,15 @@ class _PushNotificationScreenState
 
       setState(() {
         statusMessage =
-            'This installation’s registration was removed. '
-            'Your other devices are unchanged. Browser permission '
-            'is managed separately in device settings.';
+            'Reminders are turned off on this device. '
+            'Your other devices are unchanged.';
       });
     } on StateError catch (error) {
       showError(error.message);
     } catch (_) {
       showError(
-        'Unable to finish notification cleanup. '
-        'Check your connection and try disabling again.',
+        'Unable to finish turning off reminders. '
+        'Check your connection and try again.',
       );
     } finally {
       if (mounted) {
@@ -109,40 +102,50 @@ class _PushNotificationScreenState
     if (!mounted) return;
 
     setState(() {
-      token = null;
       errorMessage = message;
       statusMessage =
-          'The operation was not confirmed. '
-          'You can retry when connected.';
+          'Your change could not be confirmed. Please try again.';
     });
   }
 
-  Future<void> copyToken() async {
-    final value = token;
-
-    if (value == null || isBusy) return;
-
-    try {
-      await Clipboard.setData(ClipboardData(text: value));
-
-      if (!mounted) return;
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Test token copied. Paste it only into Firebase’s test tool.',
-          ),
+  Widget reminderDetails() {
+    return Card(
+      margin: EdgeInsets.zero,
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'How reminders work',
+              style: TextStyle(
+                fontSize: 19,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const SizedBox(height: 12),
+            const Text(
+              'We check daily for active groceries expiring today '
+              'or within the next three days.',
+              style: TextStyle(height: 1.5),
+            ),
+            const SizedBox(height: 12),
+            const Text(
+              'Reminders use UK calendar dates. Delivery may be '
+              'delayed by network availability, notification settings '
+              'or the daily scheduling service.',
+              style: TextStyle(height: 1.5),
+            ),
+            const SizedBox(height: 12),
+            const Text(
+              'Notifications use a general message without listing '
+              'your groceries. Open the app to review your items.',
+              style: TextStyle(height: 1.5),
+            ),
+          ],
         ),
-      );
-    } catch (_) {
-      if (!mounted) return;
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Unable to copy the test token.'),
-        ),
-      );
-    }
+      ),
+    );
   }
 
   @override
@@ -151,7 +154,7 @@ class _PushNotificationScreenState
       canPop: !isBusy,
       child: Scaffold(
         appBar: AppBar(
-          title: const Text('Push notification experiment'),
+          title: const Text('Expiry reminders'),
           automaticallyImplyLeading: !isBusy,
         ),
         body: Center(
@@ -160,74 +163,141 @@ class _PushNotificationScreenState
             child: ListView(
               padding: const EdgeInsets.all(24),
               children: [
-                const Icon(
-                  Icons.notifications_active_outlined,
-                  size: 56,
-                ),
-                const SizedBox(height: 20),
-                const Text(
-                  'Your notification preferences',
-                  style: TextStyle(
-                    fontSize: 26,
-                    fontWeight: FontWeight.w800,
+                Container(
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        Color(0xFF123C25),
+                        Color(0xFF227447),
+                      ],
+                    ),
+                    borderRadius: BorderRadius.circular(24),
                   ),
-                ),
-                const SizedBox(height: 12),
-                const Text(
-                  'Enable notifications only if you want to receive them. '
-                  'On iPhone, open the app installed on your Home Screen.',
-                ),
-                const SizedBox(height: 20),
-                Semantics(
-                  liveRegion: true,
-                  child: Text(statusMessage),
-                ),
-                const SizedBox(height: 20),
-                FilledButton.icon(
-                  onPressed: isBusy ? null : enableNotifications,
-                  icon: const Icon(Icons.notifications_outlined),
-                  label: const Text('Enable notifications'),
-                ),
-                const SizedBox(height: 12),
-                OutlinedButton.icon(
-                  onPressed: isBusy ? null : disableNotifications,
-                  icon: const Icon(Icons.notifications_off_outlined),
-                  label: const Text('Disable on this installation'),
-                ),
-                if (token != null) ...[
-                  const SizedBox(height: 12),
-                  OutlinedButton.icon(
-                    onPressed: isBusy ? null : copyToken,
-                    icon: const Icon(Icons.copy_outlined),
-                    label: const Text('Copy test delivery token'),
-                  ),
-                ],
-                if (isBusy) ...[
-                  const SizedBox(height: 20),
-                  const LinearProgressIndicator(),
-                ],
-                if (errorMessage != null) ...[
-                  const SizedBox(height: 20),
-                  Semantics(
-                    liveRegion: true,
-                    child: Text(
-                      errorMessage!,
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.error,
+                  child: const Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      CircleAvatar(
+                        radius: 28,
+                        backgroundColor: Color(0xFFE5F6BD),
+                        child: Icon(
+                          Icons.notifications_active_outlined,
+                          color: Color(0xFF123C25),
+                          size: 30,
+                        ),
                       ),
+                      SizedBox(height: 18),
+                      Text(
+                        'A little reminder,\nless forgotten food.',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 27,
+                          height: 1.2,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      SizedBox(height: 12),
+                      Text(
+                        'Optional reminders to help you keep '
+                        'an eye on recorded expiry dates.',
+                        style: TextStyle(
+                          color: Color(0xFFE3F1E6),
+                          fontSize: 16,
+                          height: 1.5,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 24),
+                Card(
+                  margin: EdgeInsets.zero,
+                  child: Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        const Text(
+                          'Reminders on this device',
+                          style: TextStyle(
+                            fontSize: 19,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        Semantics(
+                          liveRegion: true,
+                          child: Text(
+                            statusMessage,
+                            style: const TextStyle(height: 1.5),
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                        FilledButton.icon(
+                          onPressed:
+                              isBusy ? null : enableNotifications,
+                          icon:
+                              const Icon(Icons.notifications_outlined),
+                          label: const Text('Enable daily reminders'),
+                        ),
+                        const SizedBox(height: 12),
+                        OutlinedButton.icon(
+                          onPressed:
+                              isBusy ? null : disableNotifications,
+                          icon: const Icon(
+                            Icons.notifications_off_outlined,
+                          ),
+                          label: const Text(
+                            'Turn off on this device',
+                          ),
+                        ),
+                        if (isBusy) ...[
+                          const SizedBox(height: 20),
+                          const LinearProgressIndicator(),
+                        ],
+                        if (errorMessage != null) ...[
+                          const SizedBox(height: 16),
+                          Semantics(
+                            liveRegion: true,
+                            child: Text(
+                              errorMessage!,
+                              style: TextStyle(
+                                color:
+                                    Theme.of(context).colorScheme.error,
+                                height: 1.5,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
                   ),
-                ],
-                const SizedBox(height: 24),
+                ),
+                const SizedBox(height: 16),
+                reminderDetails(),
+                const SizedBox(height: 20),
                 const Text(
-                  'Enabling links this installation to your account. '
-                  'Logging out removes its registration; enable again '
-                  'after logging back in if you want notifications.',
+                  'On iPhone, enable reminders from the app installed '
+                  'on your Home Screen. Logging out turns off this '
+                  'device’s registration; enable again after logging in '
+                  'if you want reminders.',
+                  style: TextStyle(
+                    fontSize: 13,
+                    height: 1.5,
+                    color: Color(0xFF536458),
+                  ),
                 ),
                 const SizedBox(height: 12),
                 const Text(
-                  'This remains an experiment. Use generic test messages '
-                  'until account-change and token-refresh checks are complete.',
+                  'Date reminders do not determine whether food is safe. '
+                  'Always follow the packaging and storage instructions.',
+                  style: TextStyle(
+                    fontSize: 13,
+                    height: 1.5,
+                    color: Color(0xFF536458),
+                  ),
                 ),
               ],
             ),
