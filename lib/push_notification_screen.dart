@@ -1,3 +1,4 @@
+
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 
@@ -11,16 +12,77 @@ class PushNotificationScreen extends StatefulWidget {
       _PushNotificationScreenState();
 }
 
-class _PushNotificationScreenState
-    extends State<PushNotificationScreen> {
+class _PushNotificationScreenState extends State<PushNotificationScreen>
+    with WidgetsBindingObserver {
   final service = PushNotificationService();
 
   bool isBusy = false;
+  bool isCheckingStatus = false;
+  bool notificationsEnabled = false;
+
   String? errorMessage;
 
-  String statusMessage =
-      'Choose Enable daily reminders to receive notifications '
-      'on this device. Opening this page does not change your preference.';
+  String statusMessage = 'Checking your notification settings...';
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    checkNotificationStatus();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && !isBusy) {
+      checkNotificationStatus();
+    }
+  }
+
+  Future<void> checkNotificationStatus() async {
+    if (isCheckingStatus || isBusy) return;
+
+    setState(() {
+      isCheckingStatus = true;
+      errorMessage = null;
+      statusMessage = 'Checking your notification settings...';
+    });
+
+    try {
+      final enabled = await service.isEnabledOnThisDevice();
+
+      if (!mounted) return;
+
+      setState(() {
+        notificationsEnabled = enabled;
+        statusMessage = enabled
+            ? 'Daily reminders are enabled on this device '
+                'for your signed-in account.'
+            : 'Daily reminders are not currently enabled on this device. '
+                'Choose Enable daily reminders if you want to turn them on.';
+      });
+    } catch (_) {
+      if (!mounted) return;
+
+      setState(() {
+        errorMessage =
+            'Unable to check your notification settings. '
+            'Please check your connection and try again.';
+        statusMessage = 'Your notification status could not be confirmed.';
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          isCheckingStatus = false;
+        });
+      }
+    }
+  }
 
   Future<void> enableNotifications() async {
     if (isBusy) return;
@@ -37,6 +99,7 @@ class _PushNotificationScreenState
       if (!mounted) return;
 
       setState(() {
+        notificationsEnabled = true;
         statusMessage =
             'Daily reminders are enabled on this device '
             'for your signed-in account.';
@@ -78,6 +141,7 @@ class _PushNotificationScreenState
       if (!mounted) return;
 
       setState(() {
+        notificationsEnabled = false;
         statusMessage =
             'Reminders are turned off on this device. '
             'Your other devices are unchanged.';
@@ -236,24 +300,23 @@ class _PushNotificationScreenState
                         ),
                         const SizedBox(height: 20),
                         FilledButton.icon(
-                          onPressed:
-                              isBusy ? null : enableNotifications,
-                          icon:
-                              const Icon(Icons.notifications_outlined),
+                          onPressed: isBusy || isCheckingStatus
+                              ? null
+                              : enableNotifications,
+                          icon: const Icon(Icons.notifications_outlined),
                           label: const Text('Enable daily reminders'),
                         ),
                         const SizedBox(height: 12),
                         OutlinedButton.icon(
-                          onPressed:
-                              isBusy ? null : disableNotifications,
+                          onPressed: isBusy || isCheckingStatus
+                              ? null
+                              : disableNotifications,
                           icon: const Icon(
                             Icons.notifications_off_outlined,
                           ),
-                          label: const Text(
-                            'Turn off on this device',
-                          ),
+                          label: const Text('Turn off on this device'),
                         ),
-                        if (isBusy) ...[
+                        if (isBusy || isCheckingStatus) ...[
                           const SizedBox(height: 20),
                           const LinearProgressIndicator(),
                         ],
@@ -264,11 +327,18 @@ class _PushNotificationScreenState
                             child: Text(
                               errorMessage!,
                               style: TextStyle(
-                                color:
-                                    Theme.of(context).colorScheme.error,
+                                color: Theme.of(context).colorScheme.error,
                                 height: 1.5,
                               ),
                             ),
+                          ),
+                        ],
+                        if (!isBusy && !isCheckingStatus) ...[
+                          const SizedBox(height: 12),
+                          TextButton.icon(
+                            onPressed: checkNotificationStatus,
+                            icon: const Icon(Icons.refresh),
+                            label: const Text('Check status again'),
                           ),
                         ],
                       ],

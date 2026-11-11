@@ -1,3 +1,4 @@
+
 import 'package:flutter/material.dart';
 
 class GroceryCategoryIcon extends StatelessWidget {
@@ -38,18 +39,20 @@ class GroceryCategoryIcon extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Tooltip(
       message: category,
       child: Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: const Color(0xFFEDF6E8),
+          color: colorScheme.surfaceContainerHighest,
           borderRadius: BorderRadius.circular(14),
         ),
         child: Icon(
           icon,
           size: 28,
-          color: const Color(0xFF176B3A),
+          color: colorScheme.primary,
           semanticLabel: category,
         ),
       ),

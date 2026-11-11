@@ -1,9 +1,11 @@
+
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 
+import 'dart:async';
+
 import 'models/pantry_item.dart';
 import 'services/pantry_service.dart';
-import 'dart:async';
 import 'label_ocr_screen.dart';
 
 class AddGroceryScreen extends StatefulWidget {
@@ -75,36 +77,38 @@ class _AddGroceryScreenState extends State<AddGroceryScreen> {
     if (pounds == null || pence == null) return null;
     return pounds * 100 + pence;
   }
+
   Future<void> readExpiryLabel() async {
-  if (isSaving) return;
+    if (isSaving) return;
 
-  FocusScope.of(context).unfocus();
+    FocusScope.of(context).unfocus();
 
-  final selectedDate = await Navigator.of(context).push<DateTime>(
-    MaterialPageRoute(
-      builder: (_) => const LabelOcrScreen(),
-    ),
-  );
-
-  if (selectedDate == null || !mounted) return;
-
-  if (selectedDate.isBefore(purchaseDate)) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text(
-          'That date is before the purchase date. '
-          'Check both dates and correct them if needed.',
-        ),
+    final selectedDate = await Navigator.of(context).push<DateTime>(
+      MaterialPageRoute(
+        builder: (_) => const LabelOcrScreen(),
       ),
     );
-    return;
+
+    if (selectedDate == null || !mounted) return;
+
+    if (selectedDate.isBefore(purchaseDate)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'That date is before the purchase date. '
+            'Check both dates and correct them if needed.',
+          ),
+        ),
+      );
+      return;
+    }
+
+    setState(() {
+      expiryDate = selectedDate;
+      errorMessage = null;
+    });
   }
 
-  setState(() {
-    expiryDate = selectedDate;
-    errorMessage = null;
-  });
-}
   Future<void> chooseDate({required bool isExpiry}) async {
     final selected = await showDatePicker(
       context: context,
@@ -148,16 +152,16 @@ class _AddGroceryScreenState extends State<AddGroceryScreen> {
     });
 
     slowSaveTimer?.cancel();
-slowSaveTimer = Timer(const Duration(seconds: 10), () {
-  if (!mounted || !isSaving) return;
+    slowSaveTimer = Timer(const Duration(seconds: 10), () {
+      if (!mounted || !isSaving) return;
 
-  setState(() {
-    errorMessage =
-        'Saving is taking longer than usual. Check your connection. '
-        'Keep this form open; the save may still complete. '
-        'Please do not submit the item again.';
-  });
-});
+      setState(() {
+        errorMessage =
+            'Saving is taking longer than usual. Check your connection. '
+            'Keep this form open; the save may still complete. '
+            'Please do not submit the item again.';
+      });
+    });
 
     try {
       final quantity = int.parse(quantityController.text.trim());
@@ -236,6 +240,8 @@ slowSaveTimer = Timer(const Duration(seconds: 10), () {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Center(
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
@@ -246,62 +252,65 @@ slowSaveTimer = Timer(const Duration(seconds: 10), () {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                // Theme-aware introductory card.
                 Container(
-  padding: const EdgeInsets.all(22),
-  decoration: BoxDecoration(
-    color: const Color(0xFFEDF6E8),
-    borderRadius: BorderRadius.circular(22),
-    border: Border.all(
-      color: const Color(0xFFD3E6CC),
-    ),
-  ),
-  child: Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(14),
-        ),
-        child: const Icon(
-          Icons.add_shopping_cart_outlined,
-          color: Color(0xFF176B3A),
-          size: 30,
-        ),
-      ),
-      const SizedBox(height: 16),
-      const Text(
-        'A fresh addition',
-        style: TextStyle(
-          fontSize: 28,
-          height: 1.2,
-          fontWeight: FontWeight.w800,
-          color: Color(0xFF123C25),
-        ),
-      ),
-      const SizedBox(height: 10),
-      const Text(
-        'Add your grocery details to keep your pantry '
-        'organised and your spending in view.',
-        style: TextStyle(
-          fontSize: 15,
-          height: 1.5,
-          color: Color(0xFF435246),
-        ),
-      ),
-    ],
-  ),
-),
-const SizedBox(height: 24),
-const Text(
-  'Item details',
-  style: TextStyle(
-    fontSize: 19,
-    fontWeight: FontWeight.w800,
-  ),
-),
-const SizedBox(height: 16),
+                  padding: const EdgeInsets.all(22),
+                  decoration: BoxDecoration(
+                    color: colorScheme.surfaceContainerHighest,
+                    borderRadius: BorderRadius.circular(22),
+                    border: Border.all(
+                      color: colorScheme.outlineVariant,
+                    ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: colorScheme.surface,
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        child: Icon(
+                          Icons.add_shopping_cart_outlined,
+                          color: colorScheme.primary,
+                          size: 30,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'A fresh addition',
+                        style: TextStyle(
+                          fontSize: 28,
+                          height: 1.2,
+                          fontWeight: FontWeight.w800,
+                          color: colorScheme.onSurface,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      Text(
+                        'Add your grocery details to keep your pantry '
+                        'organised and your spending in view.',
+                        style: TextStyle(
+                          fontSize: 15,
+                          height: 1.5,
+                          color: colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 24),
+
+                const Text(
+                  'Item details',
+                  style: TextStyle(
+                    fontSize: 19,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 16),
+
                 TextFormField(
                   controller: nameController,
                   enabled: !isSaving,
@@ -320,6 +329,7 @@ const SizedBox(height: 16),
                   },
                 ),
                 const SizedBox(height: 16),
+
                 DropdownButtonFormField<String>(
                   initialValue: category,
                   isExpanded: true,
@@ -343,16 +353,18 @@ const SizedBox(height: 16),
                         },
                 ),
                 const SizedBox(height: 28),
-const Text(
-  'Purchase details',
-  style: TextStyle(
-    fontSize: 19,
-    fontWeight: FontWeight.w800,
-  ),
-),
-const SizedBox(height: 16),
-TextFormField(
-  controller: quantityController,
+
+                const Text(
+                  'Purchase details',
+                  style: TextStyle(
+                    fontSize: 19,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                TextFormField(
+                  controller: quantityController,
                   enabled: !isSaving,
                   keyboardType: TextInputType.number,
                   decoration: const InputDecoration(
@@ -362,13 +374,16 @@ TextFormField(
                   ),
                   validator: (value) {
                     final quantity = int.tryParse(value?.trim() ?? '');
-                    if (quantity == null || quantity < 1 || quantity > 999) {
+                    if (quantity == null ||
+                        quantity < 1 ||
+                        quantity > 999) {
                       return 'Enter a whole number from 1 to 999.';
                     }
                     return null;
                   },
                 ),
                 const SizedBox(height: 16),
+
                 TextFormField(
                   controller: priceController,
                   enabled: !isSaving,
@@ -390,23 +405,26 @@ TextFormField(
                   },
                 ),
                 const SizedBox(height: 28),
-const Text(
-  'Important dates',
-  style: TextStyle(
-    fontSize: 19,
-    fontWeight: FontWeight.w800,
-  ),
-),
-const SizedBox(height: 8),
-const Text(
-  'Record when you bought it and the expiry date on its label.',
-  style: TextStyle(
-    color: Color(0xFF536458),
-    height: 1.5,
-  ),
-),
-const SizedBox(height: 16),
-OutlinedButton.icon(
+
+                const Text(
+                  'Important dates',
+                  style: TextStyle(
+                    fontSize: 19,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 8),
+
+                Text(
+                  'Record when you bought it and the expiry date on its label.',
+                  style: TextStyle(
+                    color: colorScheme.onSurfaceVariant,
+                    height: 1.5,
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                OutlinedButton.icon(
                   onPressed: isSaving
                       ? null
                       : () => chooseDate(isExpiry: false),
@@ -414,6 +432,7 @@ OutlinedButton.icon(
                   label: Text('Purchased: ${dateLabel(purchaseDate)}'),
                 ),
                 const SizedBox(height: 12),
+
                 OutlinedButton.icon(
                   onPressed: isSaving
                       ? null
@@ -426,29 +445,34 @@ OutlinedButton.icon(
                   ),
                 ),
                 const SizedBox(height: 12),
-OutlinedButton.icon(
-  onPressed: isSaving ? null : readExpiryLabel,
-  icon: const Icon(Icons.document_scanner_outlined),
-  label: const Text('Read expiry from photo'),
-),
-const SizedBox(height: 8),
-const Text(
-  'Optional · Review and confirm any recognised date.',
-  style: TextStyle(
-    fontSize: 13,
-    color: Color(0xFF536458),
-  ),
-),
+
+                OutlinedButton.icon(
+                  onPressed: isSaving ? null : readExpiryLabel,
+                  icon: const Icon(Icons.document_scanner_outlined),
+                  label: const Text('Read expiry from photo'),
+                ),
+                const SizedBox(height: 8),
+
+                Text(
+                  'Optional · Review and confirm any recognised date.',
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: colorScheme.onSurfaceVariant,
+                  ),
+                ),
+
                 if (errorMessage != null) ...[
                   const SizedBox(height: 16),
                   Text(
                     errorMessage!,
                     style: TextStyle(
-                      color: Theme.of(context).colorScheme.error,
+                      color: colorScheme.error,
                     ),
                   ),
                 ],
+
                 const SizedBox(height: 24),
+
                 FilledButton.icon(
                   onPressed: isSaving ? null : saveGrocery,
                   icon: isSaving

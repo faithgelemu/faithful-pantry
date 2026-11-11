@@ -11,6 +11,8 @@ import 'pantry_screen.dart';
 import 'profile_screen.dart';
 import 'services/push_notification_service.dart';
 import 'widgets/push_registration_refresh.dart';
+import 'services/theme_service.dart';
+
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -22,14 +24,57 @@ Future<void> main() async {
   runApp(const FaithfulPantryApp());
 }
 
-class FaithfulPantryApp extends StatelessWidget {
+class FaithfulPantryApp extends StatefulWidget {
   const FaithfulPantryApp({super.key});
+
+  @override
+  State<FaithfulPantryApp> createState() => _FaithfulPantryAppState();
+}
+class _FaithfulPantryAppState extends State<FaithfulPantryApp> {
+  final ThemeService _themeService = ThemeService();
+
+  ThemeMode _themeMode = ThemeMode.system;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadThemeMode();
+  }
+
+  Future<void> _loadThemeMode() async {
+  try {
+    final savedTheme = await _themeService.loadThemeMode();
+
+    if (!mounted) return;
+
+    setState(() {
+      _themeMode = savedTheme;
+    });
+  } catch (error) {
+    debugPrint('Unable to load theme preference: $error');
+  }
+  }
+
+  Future<void> _changeThemeMode(ThemeMode newMode) async {
+  if (_themeMode == newMode) return;
+
+  setState(() {
+    _themeMode = newMode;
+  });
+
+  try {
+    await _themeService.saveThemeMode(newMode);
+  } catch (error) {
+    debugPrint('Unable to save theme preference: $error');
+  }
+}
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Faithful Pantry',
       debugShowCheckedModeBanner: false,
+      themeMode: _themeMode,
       theme: ThemeData(
         useMaterial3: true,
         fontFamily: 'NunitoSans',
@@ -161,6 +206,67 @@ class FaithfulPantryApp extends StatelessWidget {
           ),
         ),
       ),
+
+darkTheme: ThemeData(
+  useMaterial3: true,
+  fontFamily: 'NunitoSans',
+
+  colorScheme: const ColorScheme.dark(
+    primary: Color(0xFF8FE3A8),
+    onPrimary: Color(0xFF12351D),
+
+    secondary: Color(0xFFB5EFC5),
+    onSecondary: Color(0xFF153820),
+
+    surface: Color(0xFF18251D),
+    onSurface: Color(0xFFF5F8F5),
+
+    error: Color(0xFFFFB4AB),
+    onError: Color(0xFF690005),
+  ),
+
+  scaffoldBackgroundColor: Color(0xFF101A14),
+
+  textTheme: const TextTheme(
+    displayLarge: TextStyle(
+      color: Color(0xFFFFFFFF),
+      fontWeight: FontWeight.bold,
+    ),
+    headlineLarge: TextStyle(
+      color: Color(0xFFFFFFFF),
+      fontWeight: FontWeight.bold,
+    ),
+    headlineMedium: TextStyle(
+      color: Color(0xFFFFFFFF),
+      fontWeight: FontWeight.bold,
+    ),
+    titleLarge: TextStyle(
+      color: Color(0xFFFFFFFF),
+      fontWeight: FontWeight.w700,
+    ),
+    titleMedium: TextStyle(
+      color: Color(0xFFF5F8F5),
+      fontWeight: FontWeight.w600,
+    ),
+    bodyLarge: TextStyle(
+      color: Color(0xFFF5F8F5),
+      fontSize: 16,
+    ),
+    bodyMedium: TextStyle(
+      color: Color(0xFFE4EDE6),
+      fontSize: 15,
+    ),
+    bodySmall: TextStyle(
+      color: Color(0xFFCDD9CF),
+      fontSize: 14,
+    ),
+    labelLarge: TextStyle(
+      color: Color(0xFFF5F8F5),
+      fontWeight: FontWeight.w600,
+    ),
+  ),
+),
+
       home: StreamBuilder<User?>(
         stream: FirebaseAuth.instance.authStateChanges(),
         builder: (context, snapshot) {
@@ -191,7 +297,11 @@ class FaithfulPantryApp extends StatelessWidget {
           return PushRegistrationRefresh(
           key: ValueKey(user.uid),
           userId: user.uid,
-          child: HomeScreen(key: ValueKey(user.uid)),
+          child: HomeScreen(
+          key: ValueKey(user.uid),
+          themeMode: _themeMode,
+          onThemeModeChanged: _changeThemeMode,
+          ),
           );
         }
 
@@ -213,6 +323,8 @@ class HomeScreen extends StatefulWidget {
     this.testPages,
     this.dashboardBuilder,
     this.detailBuilder,
+    this.themeMode = ThemeMode.system,
+    this.onThemeModeChanged,
   });
 
   final List<Widget>? testPages;
@@ -223,6 +335,9 @@ class HomeScreen extends StatefulWidget {
   )? dashboardBuilder;
 
   final Widget Function(HomeDetail detail)? detailBuilder;
+
+  final ThemeMode themeMode;
+  final ValueChanged<ThemeMode>? onThemeModeChanged;
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -346,7 +461,9 @@ class _HomeScreenState extends State<HomeScreen> {
       case 2:
         return const BudgetScreen();
       default:
-        return const ProfileScreen();
+      return ProfileScreen(
+      themeMode: widget.themeMode,
+      onThemeModeChanged: widget.onThemeModeChanged,);
     }
   }
 

@@ -263,13 +263,21 @@ Widget welcomeBanner() {
   required VoidCallback onTap,
   bool isAlert = false,
 }) {
-  final background = isAlert
-      ? const Color(0xFFFFF3E7)
-      : const Color(0xFFEDF6E8);
+  final colorScheme = Theme.of(context).colorScheme;
+  final isDark = Theme.of(context).brightness == Brightness.dark;
+  final background = isDark
+    ? colorScheme.surfaceContainerHighest
+    : isAlert
+        ? const Color(0xFFFFF3E7)
+        : const Color(0xFFEDF6E8);
 
-  final accent = isAlert
-      ? const Color(0xFF88451D)
-      : const Color(0xFF176B3A);
+final accent = isDark
+    ? isAlert
+        ? const Color(0xFFFFC18F)
+        : colorScheme.primary
+    : isAlert
+        ? const Color(0xFF88451D)
+        : const Color(0xFF176B3A);
 
   return Card(
     margin: EdgeInsets.zero,
@@ -278,9 +286,11 @@ Widget welcomeBanner() {
     shape: RoundedRectangleBorder(
       borderRadius: BorderRadius.circular(20),
       side: BorderSide(
-        color: isAlert
-            ? const Color(0xFFEEDBC9)
-            : const Color(0xFFD3E6CC),
+      color: isDark
+      ? colorScheme.outlineVariant
+      : isAlert
+          ? const Color(0xFFEEDBC9)
+          : const Color(0xFFD3E6CC),
       ),
     ),
     child: InkWell(
@@ -294,7 +304,7 @@ Widget welcomeBanner() {
               child: Container(
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: colorScheme.surface,
                   borderRadius: BorderRadius.circular(16),
                 ),
                 child: Icon(
@@ -320,11 +330,11 @@ Widget welcomeBanner() {
                   const SizedBox(height: 6),
                   Text(
                     subtitle,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      height: 1.5,
-                      color: Color(0xFF435246),
-                    ),
+                    style: TextStyle(
+                    fontSize: 14,
+                    height: 1.5,
+                    color: colorScheme.onSurfaceVariant,
+                  ),
                   ),
                 ],
               ),
@@ -469,18 +479,20 @@ Widget welcomeBanner() {
                     const SizedBox(height: 4),
                     Text(
                       item.category,
-                      style: const TextStyle(
-                        color: Color(0xFF536458),
-                        fontSize: 13,
-                      ),
+                      style: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      fontSize: 13,
+      ),
                     ),
                     const SizedBox(height: 8),
                     Text(
                       expiryLabel(item, today),
-                      style: const TextStyle(
-                        color: Color(0xFF88451D),
-                        fontWeight: FontWeight.w700,
-                      ),
+                      style: TextStyle(
+                      color: Theme.of(context).brightness == Brightness.dark
+                      ? const Color(0xFFFFC18F)
+                      : const Color(0xFF88451D),
+                      fontWeight: FontWeight.w700,
+        ),
                     ),
                     const SizedBox(height: 4),
                     Text(

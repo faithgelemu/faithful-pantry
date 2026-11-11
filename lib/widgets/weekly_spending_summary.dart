@@ -1,3 +1,4 @@
+
 import 'package:flutter/material.dart';
 
 import '../models/purchase_record.dart';
@@ -47,6 +48,8 @@ class _WeeklySpendingSummaryState
   }
 
   Widget budgetDetails(int spentPence) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return StreamBuilder<int?>(
       stream: budgetStream,
       builder: (context, snapshot) {
@@ -68,14 +71,14 @@ class _WeeklySpendingSummaryState
             width: double.infinity,
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: const Color(0xFFF0F6EC),
+              color: colorScheme.surfaceContainerHighest,
               borderRadius: BorderRadius.circular(16),
             ),
-            child: const Text(
+            child: Text(
               'Give your spending a little direction.\n'
               'Set a weekly limit in the Budget tab.',
               style: TextStyle(
-                color: Color(0xFF20382B),
+                color: colorScheme.onSurface,
                 height: 1.5,
               ),
             ),
@@ -88,9 +91,10 @@ class _WeeklySpendingSummaryState
         );
 
         final isOverBudget = remainingPence < 0;
+
         final accentColor = isOverBudget
-            ? Theme.of(context).colorScheme.error
-            : const Color(0xFF176B3A);
+            ? colorScheme.error
+            : colorScheme.primary;
 
         // A zero budget has no percentage to calculate.
         final progress = budgetPence > 0
@@ -102,8 +106,8 @@ class _WeeklySpendingSummaryState
           padding: const EdgeInsets.all(18),
           decoration: BoxDecoration(
             color: isOverBudget
-                ? Theme.of(context).colorScheme.errorContainer
-                : const Color(0xFFEDF6E8),
+                ? colorScheme.errorContainer
+                : colorScheme.surfaceContainerHighest,
             borderRadius: BorderRadius.circular(16),
           ),
           child: Column(
@@ -113,8 +117,8 @@ class _WeeklySpendingSummaryState
                 isOverBudget ? 'Over budget by' : 'Still available',
                 style: TextStyle(
                   color: isOverBudget
-                      ? Theme.of(context).colorScheme.onErrorContainer
-                      : const Color(0xFF20382B),
+                      ? colorScheme.onErrorContainer
+                      : colorScheme.onSurface,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -127,8 +131,8 @@ class _WeeklySpendingSummaryState
                   fontSize: 28,
                   fontWeight: FontWeight.w800,
                   color: isOverBudget
-                      ? Theme.of(context).colorScheme.onErrorContainer
-                      : const Color(0xFF123C25),
+                      ? colorScheme.onErrorContainer
+                      : colorScheme.onSurface,
                 ),
               ),
               const SizedBox(height: 12),
@@ -136,8 +140,8 @@ class _WeeklySpendingSummaryState
                 'Weekly limit: ${money(budgetPence)}',
                 style: TextStyle(
                   color: isOverBudget
-                      ? Theme.of(context).colorScheme.onErrorContainer
-                      : const Color(0xFF20382B),
+                      ? colorScheme.onErrorContainer
+                      : colorScheme.onSurface,
                 ),
               ),
               if (progress != null) ...[
@@ -149,8 +153,8 @@ class _WeeklySpendingSummaryState
                     minHeight: 8,
                     color: accentColor,
                     backgroundColor: isOverBudget
-                        ? Theme.of(context).colorScheme.surface
-                        : const Color(0xFFD3E6CC),
+                        ? colorScheme.surface
+                        : colorScheme.outlineVariant,
                     semanticsLabel: 'Weekly budget spent',
                     semanticsValue:
                         '${(spentPence / budgetPence * 100).round()}%',
@@ -164,8 +168,8 @@ class _WeeklySpendingSummaryState
                   style: TextStyle(
                     fontSize: 13,
                     color: isOverBudget
-                        ? Theme.of(context).colorScheme.onErrorContainer
-                        : const Color(0xFF20382B),
+                        ? colorScheme.onErrorContainer
+                        : colorScheme.onSurfaceVariant,
                   ),
                 ),
               ] else ...[
@@ -174,8 +178,8 @@ class _WeeklySpendingSummaryState
                   'Your weekly limit is £0.00.',
                   style: TextStyle(
                     color: isOverBudget
-                        ? Theme.of(context).colorScheme.onErrorContainer
-                        : const Color(0xFF20382B),
+                        ? colorScheme.onErrorContainer
+                        : colorScheme.onSurfaceVariant,
                   ),
                 ),
               ],
@@ -188,6 +192,8 @@ class _WeeklySpendingSummaryState
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     if (purchasesStream == null || budgetStream == null) {
       return const Text('Please log in to view your spending.');
     }
@@ -212,12 +218,12 @@ class _WeeklySpendingSummaryState
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFEDF6E8),
+                    color: colorScheme.surfaceContainerHighest,
                     borderRadius: BorderRadius.circular(14),
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.account_balance_wallet_outlined,
-                    color: Color(0xFF176B3A),
+                    color: colorScheme.primary,
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -235,8 +241,8 @@ class _WeeklySpendingSummaryState
                       const SizedBox(height: 4),
                       Text(
                         '${dateLabel(monday)} – ${dateLabel(sunday)}',
-                        style: const TextStyle(
-                          color: Color(0xFF536458),
+                        style: TextStyle(
+                          color: colorScheme.onSurfaceVariant,
                           fontSize: 13,
                         ),
                       ),
@@ -268,10 +274,10 @@ class _WeeklySpendingSummaryState
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    const Text(
+                    Text(
                       'Total spent',
                       style: TextStyle(
-                        color: Color(0xFF536458),
+                        color: colorScheme.onSurfaceVariant,
                         fontSize: 15,
                         fontWeight: FontWeight.w600,
                       ),
@@ -279,11 +285,11 @@ class _WeeklySpendingSummaryState
                     const SizedBox(height: 4),
                     Text(
                       money(spentPence),
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 38,
                         height: 1.2,
                         fontWeight: FontWeight.w800,
-                        color: Color(0xFF123C25),
+                        color: colorScheme.onSurface,
                       ),
                     ),
                     const SizedBox(height: 20),
@@ -293,11 +299,11 @@ class _WeeklySpendingSummaryState
               },
             ),
             const SizedBox(height: 18),
-            const Text(
+            Text(
               'Open Budget for daily spending and purchase details.',
               style: TextStyle(
                 fontSize: 13,
-                color: Color(0xFF536458),
+                color: colorScheme.onSurfaceVariant,
                 height: 1.5,
               ),
             ),

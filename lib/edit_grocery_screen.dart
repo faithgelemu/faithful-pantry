@@ -1,3 +1,4 @@
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
@@ -122,6 +123,12 @@ class _EditGroceryScreenState extends State<EditGroceryScreen> {
       initialDate: initialDate,
       firstDate: firstDate,
       lastDate: lastDate,
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context),
+          child: child!,
+        );
+      },
     );
 
     if (selected == null || !mounted) return;
@@ -229,6 +236,8 @@ class _EditGroceryScreenState extends State<EditGroceryScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return PopScope(
       canPop: !isSaving,
       child: Scaffold(
@@ -246,23 +255,29 @@ class _EditGroceryScreenState extends State<EditGroceryScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    const Text(
+                    Text(
                       'Correct your grocery details',
-                      style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                      ),
+                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: colorScheme.onSurface,
+                          ),
                     ),
                     const SizedBox(height: 8),
-                    const Text(
+                    Text(
                       'Corrections update the original purchase. '
                       'Use the pantry actions to record use or waste.',
+                      style: TextStyle(
+                        color: colorScheme.onSurfaceVariant,
+                      ),
                     ),
                     const SizedBox(height: 12),
                     Text(
                       'Remaining when opened: '
                       '${original.currentQuantity} of '
                       '${original.purchasedQuantity}',
+                      style: TextStyle(
+                        color: colorScheme.onSurfaceVariant,
+                      ),
                     ),
                     const SizedBox(height: 24),
                     TextFormField(
@@ -378,7 +393,7 @@ class _EditGroceryScreenState extends State<EditGroceryScreen> {
                       Text(
                         errorMessage!,
                         style: TextStyle(
-                          color: Theme.of(context).colorScheme.error,
+                          color: colorScheme.error,
                         ),
                       ),
                     ],

@@ -1,3 +1,4 @@
+
 import 'dart:async';
 import 'dart:typed_data';
 
@@ -214,6 +215,8 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen>
     final camera = controller;
     final bytes = capturedBytes;
     final busy = isStarting || isCapturing;
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
 
     return Scaffold(
       appBar: AppBar(
@@ -225,40 +228,66 @@ class _CameraCaptureScreenState extends State<CameraCaptureScreen>
           child: ListView(
             padding: const EdgeInsets.all(24),
             children: [
-              const Text(
+              Text(
                 'Keep the date close, sharp and well lit. '
                 'Only camera access is requested; no audio is recorded.',
+                style: textTheme.bodyMedium?.copyWith(
+                  color: colorScheme.onSurfaceVariant,
+                  height: 1.5,
+                ),
               ),
               const SizedBox(height: 20),
+
               if (bytes != null)
-                Image.memory(
-                  bytes,
-                  height: 300,
-                  fit: BoxFit.contain,
-                  semanticLabel: 'Captured label photo',
+                Container(
+                  decoration: BoxDecoration(
+                    color: colorScheme.surfaceContainerHighest,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: colorScheme.outlineVariant,
+                    ),
+                  ),
+                  padding: const EdgeInsets.all(8),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(10),
+                    child: Image.memory(
+                      bytes,
+                      height: 300,
+                      fit: BoxFit.contain,
+                      semanticLabel: 'Captured label photo',
+                    ),
+                  ),
                 )
               else if (camera != null && camera.value.isInitialized)
                 ClipRRect(
                   borderRadius: BorderRadius.circular(16),
                   child: CameraPreview(camera),
                 ),
+
               if (busy) ...[
                 const SizedBox(height: 16),
-                const LinearProgressIndicator(),
+                LinearProgressIndicator(
+                  color: colorScheme.primary,
+                  backgroundColor:
+                      colorScheme.surfaceContainerHighest,
+                ),
               ],
+
               if (errorMessage != null) ...[
                 const SizedBox(height: 16),
                 Semantics(
                   liveRegion: true,
                   child: Text(
                     errorMessage!,
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.error,
+                    style: textTheme.bodyMedium?.copyWith(
+                      color: colorScheme.error,
                     ),
                   ),
                 ),
               ],
+
               const SizedBox(height: 20),
+
               if (bytes != null) ...[
                 FilledButton.icon(
                   onPressed: busy

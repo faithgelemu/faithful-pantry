@@ -1,3 +1,4 @@
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
@@ -92,6 +93,9 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Reset password'),
@@ -106,25 +110,29 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const Icon(
+                  Icon(
                     Icons.lock_reset,
                     size: 64,
-                    color: Color(0xFF1DB954),
+                    color: colorScheme.primary,
                   ),
                   const SizedBox(height: 20),
-                  const Text(
+                  Text(
                     'Reset your password',
                     textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 26,
+                    style: textTheme.headlineSmall?.copyWith(
                       fontWeight: FontWeight.bold,
+                      color: colorScheme.onSurface,
                     ),
                   ),
                   const SizedBox(height: 12),
-                  const Text(
+                  Text(
                     'Enter your account email to request a reset link. '
                     'Your password changes only after you follow '
                     'the link and choose a new password.',
+                    style: textTheme.bodyMedium?.copyWith(
+                      color: colorScheme.onSurfaceVariant,
+                      height: 1.5,
+                    ),
                   ),
                   const SizedBox(height: 24),
                   TextFormField(
@@ -156,22 +164,35 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                   ),
                   if (errorMessage != null) ...[
                     const SizedBox(height: 16),
-                    Text(
-                      errorMessage!,
-                      semanticsLabel: errorMessage,
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.error,
+                    Semantics(
+                      liveRegion: true,
+                      child: Text(
+                        errorMessage!,
+                        style: textTheme.bodyMedium?.copyWith(
+                          color: colorScheme.error,
+                        ),
                       ),
                     ),
                   ],
                   const SizedBox(height: 24),
                   if (requestCompleted) ...[
-                    Semantics(
-                      liveRegion: true,
-                      child: Text(
-                        'If an eligible account exists for this email, '
-                        'you will receive a password reset link. '
-                        'Check your inbox and spam folder.',
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: colorScheme.surfaceContainerHighest,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Semantics(
+                        liveRegion: true,
+                        child: Text(
+                          'If an eligible account exists for this email, '
+                          'you will receive a password reset link. '
+                          'Check your inbox and spam folder.',
+                          style: textTheme.bodyMedium?.copyWith(
+                            color: colorScheme.onSurface,
+                            height: 1.5,
+                          ),
+                        ),
                       ),
                     ),
                     const SizedBox(height: 16),
@@ -183,11 +204,12 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                     FilledButton.icon(
                       onPressed: isSending ? null : sendResetEmail,
                       icon: isSending
-                          ? const SizedBox(
+                          ? SizedBox(
                               width: 18,
                               height: 18,
                               child: CircularProgressIndicator(
                                 strokeWidth: 2,
+                                color: colorScheme.onPrimary,
                               ),
                             )
                           : const Icon(Icons.email_outlined),

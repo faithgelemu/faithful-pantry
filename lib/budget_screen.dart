@@ -1,3 +1,4 @@
+
 import 'package:flutter/material.dart';
 
 import 'models/purchase_record.dart';
@@ -115,13 +116,18 @@ class _BudgetScreenState extends State<BudgetScreen>
   }
 
   Widget budgetBalance(int totalPence) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return StreamBuilder<int?>(
       stream: budgetStream,
       builder: (context, snapshot) {
         if (snapshot.hasError) {
-          return const Text(
+          return Text(
             'Unable to load your budget. '
             'Spending is still shown above.',
+            style: TextStyle(
+              color: colorScheme.onSurfaceVariant,
+            ),
           );
         }
 
@@ -142,16 +148,18 @@ class _BudgetScreenState extends State<BudgetScreen>
             remainingPence != null && remainingPence < 0;
 
         final foreground = isOverBudget
-            ? Theme.of(context).colorScheme.onErrorContainer
-            : const Color(0xFF123C25);
+            ? colorScheme.onErrorContainer
+            : colorScheme.onSurface;
+
+        final background = isOverBudget
+            ? colorScheme.errorContainer
+            : colorScheme.surfaceContainerHighest;
 
         return Container(
           width: double.infinity,
           padding: const EdgeInsets.all(18),
           decoration: BoxDecoration(
-            color: isOverBudget
-                ? Theme.of(context).colorScheme.errorContainer
-                : const Color(0xFFEDF6E8),
+            color: background,
             borderRadius: BorderRadius.circular(16),
           ),
           child: Column(
@@ -218,6 +226,8 @@ class _BudgetScreenState extends State<BudgetScreen>
   }
 
   Widget spendingSummary(int totalPence) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Card(
       margin: EdgeInsets.zero,
       child: Padding(
@@ -225,22 +235,22 @@ class _BudgetScreenState extends State<BudgetScreen>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Text(
+            Text(
               'Total spent',
               style: TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w600,
-                color: Color(0xFF536458),
+                color: colorScheme.onSurfaceVariant,
               ),
             ),
             const SizedBox(height: 6),
             Text(
               money(totalPence),
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 38,
                 height: 1.2,
                 fontWeight: FontWeight.w800,
-                color: Color(0xFF123C25),
+                color: colorScheme.onSurface,
               ),
             ),
             const SizedBox(height: 20),
@@ -252,6 +262,8 @@ class _BudgetScreenState extends State<BudgetScreen>
   }
 
   Widget dailySpendingChart(Map<String, int> dailyTotals) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     final entries = dailyTotals.entries.toList();
     final highestPence = dailyTotals.values.fold<int>(
       0,
@@ -265,19 +277,20 @@ class _BudgetScreenState extends State<BudgetScreen>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            Text(
               'Spending by day',
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.w800,
+                color: colorScheme.onSurface,
               ),
             ),
             const SizedBox(height: 4),
-            const Text(
+            Text(
               'Tap a day for its total',
               style: TextStyle(
                 fontSize: 13,
-                color: Color(0xFF536458),
+                color: colorScheme.onSurfaceVariant,
               ),
             ),
             const SizedBox(height: 20),
@@ -343,12 +356,9 @@ class _BudgetScreenState extends State<BudgetScreen>
                                                   : barHeight,
                                               decoration: BoxDecoration(
                                                 color: amount == 0
-                                                    ? const Color(
-                                                        0xFFDCE7D8,
-                                                      )
-                                                    : const Color(
-                                                        0xFF176B3A,
-                                                      ),
+                                                    ? colorScheme
+                                                        .outlineVariant
+                                                    : colorScheme.primary,
                                                 borderRadius:
                                                     BorderRadius.circular(
                                                   8,
@@ -361,9 +371,10 @@ class _BudgetScreenState extends State<BudgetScreen>
                                         Text(
                                           dayNames[date.weekday - 1]
                                               .substring(0, 3),
-                                          style: const TextStyle(
+                                          style: TextStyle(
                                             fontSize: 12,
                                             fontWeight: FontWeight.w700,
+                                            color: colorScheme.onSurface,
                                           ),
                                         ),
                                       ],
@@ -382,7 +393,12 @@ class _BudgetScreenState extends State<BudgetScreen>
             ),
             if (highestPence == 0) ...[
               const SizedBox(height: 8),
-              const Text('No spending recorded this week.'),
+              Text(
+                'No spending recorded this week.',
+                style: TextStyle(
+                  color: colorScheme.onSurfaceVariant,
+                ),
+              ),
             ],
           ],
         ),
@@ -391,32 +407,43 @@ class _BudgetScreenState extends State<BudgetScreen>
   }
 
   Widget purchaseHistory(List<PurchaseRecord> purchases) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Card(
       margin: EdgeInsets.zero,
       clipBehavior: Clip.antiAlias,
       child: ExpansionTile(
         key: ValueKey(weekStart),
-        leading: const Icon(
+        leading: Icon(
           Icons.receipt_long_outlined,
-          color: Color(0xFF176B3A),
+          color: colorScheme.primary,
         ),
-        title: const Text(
+        title: Text(
           'Purchase history',
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.w800,
+            color: colorScheme.onSurface,
           ),
         ),
         subtitle: Text(
           '${purchases.length} '
           '${purchases.length == 1 ? 'purchase' : 'purchases'}',
+          style: TextStyle(
+            color: colorScheme.onSurfaceVariant,
+          ),
         ),
         childrenPadding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
         children: [
           if (purchases.isEmpty)
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 12),
-              child: Text('No purchases recorded for this week.'),
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              child: Text(
+                'No purchases recorded for this week.',
+                style: TextStyle(
+                  color: colorScheme.onSurfaceVariant,
+                ),
+              ),
             )
           else
             ...purchases.map((purchase) {
@@ -429,34 +456,35 @@ class _BudgetScreenState extends State<BudgetScreen>
                   children: [
                     Text(
                       purchase.name,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w800,
+                        color: colorScheme.onSurface,
                       ),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       '${purchase.category} • '
                       '${purchase.purchasedQuantity} purchased',
-                      style: const TextStyle(
-                        color: Color(0xFF536458),
+                      style: TextStyle(
+                        color: colorScheme.onSurfaceVariant,
                       ),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       dateLabel(date),
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 13,
-                        color: Color(0xFF536458),
+                        color: colorScheme.onSurfaceVariant,
                       ),
                     ),
                     const SizedBox(height: 6),
                     Text(
                       money(purchase.totalPricePence),
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 17,
                         fontWeight: FontWeight.w800,
-                        color: Color(0xFF176B3A),
+                        color: colorScheme.primary,
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -472,9 +500,16 @@ class _BudgetScreenState extends State<BudgetScreen>
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     if (purchasesStream == null || budgetStream == null) {
-      return const Center(
-        child: Text('Please log in to view your spending.'),
+      return Center(
+        child: Text(
+          'Please log in to view your spending.',
+          style: TextStyle(
+            color: colorScheme.onSurface,
+          ),
+        ),
       );
     }
 
@@ -488,13 +523,16 @@ class _BudgetScreenState extends State<BudgetScreen>
       stream: purchasesStream,
       builder: (context, snapshot) {
         if (snapshot.hasError) {
-          return const Center(
+          return Center(
             child: Padding(
-              padding: EdgeInsets.all(24),
+              padding: const EdgeInsets.all(24),
               child: Text(
                 'Unable to load spending. '
                 'Check your connection and access rules.',
                 textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: colorScheme.onSurfaceVariant,
+                ),
               ),
             ),
           );
@@ -527,27 +565,27 @@ class _BudgetScreenState extends State<BudgetScreen>
             child: ListView(
               padding: const EdgeInsets.all(24),
               children: [
-                const Text(
+                Text(
                   'Your spending, simply.',
                   style: TextStyle(
                     fontSize: 28,
                     height: 1.2,
                     fontWeight: FontWeight.w800,
-                    color: Color(0xFF123C25),
+                    color: colorScheme.onSurface,
                   ),
                 ),
                 const SizedBox(height: 8),
-                const Text(
+                Text(
                   'A clearer view of your grocery week.',
                   style: TextStyle(
-                    color: Color(0xFF536458),
+                    color: colorScheme.onSurfaceVariant,
                     height: 1.5,
                   ),
                 ),
                 const SizedBox(height: 20),
                 Container(
                   decoration: BoxDecoration(
-                    color: const Color(0xFFEDF6E8),
+                    color: colorScheme.surfaceContainerHighest,
                     borderRadius: BorderRadius.circular(16),
                   ),
                   child: Row(
@@ -566,8 +604,9 @@ class _BudgetScreenState extends State<BudgetScreen>
                             '${dateLabel(weekStart)} – '
                             '${dateLabel(weekEnd)}',
                             textAlign: TextAlign.center,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontWeight: FontWeight.w700,
+                              color: colorScheme.onSurface,
                             ),
                           ),
                         ),
@@ -589,13 +628,13 @@ class _BudgetScreenState extends State<BudgetScreen>
                 const SizedBox(height: 20),
                 purchaseHistory(purchases),
                 const SizedBox(height: 16),
-                const Text(
+                Text(
                   'Monday–Sunday, by purchase date. '
                   'Used, wasted and removed groceries stay included.',
                   style: TextStyle(
                     fontSize: 12,
                     height: 1.5,
-                    color: Color(0xFF536458),
+                    color: colorScheme.onSurfaceVariant,
                   ),
                 ),
               ],

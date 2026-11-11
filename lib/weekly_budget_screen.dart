@@ -1,3 +1,4 @@
+
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 
@@ -117,6 +118,8 @@ class _WeeklyBudgetScreenState extends State<WeeklyBudgetScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return PopScope(
       canPop: !isSaving,
       child: Scaffold(
@@ -134,17 +137,21 @@ class _WeeklyBudgetScreenState extends State<WeeklyBudgetScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    const Text(
+                    Text(
                       'Set your weekly grocery budget',
-                      style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                      ),
+                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: colorScheme.onSurface,
+                          ),
                     ),
                     const SizedBox(height: 12),
-                    const Text(
+                    Text(
                       'This limit is reused each week. Changing it '
                       'does not change your purchase history.',
+                      style: TextStyle(
+                        color: colorScheme.onSurfaceVariant,
+                        height: 1.5,
+                      ),
                     ),
                     const SizedBox(height: 24),
                     TextFormField(
@@ -177,7 +184,7 @@ class _WeeklyBudgetScreenState extends State<WeeklyBudgetScreen> {
                       Text(
                         errorMessage!,
                         style: TextStyle(
-                          color: Theme.of(context).colorScheme.error,
+                          color: colorScheme.error,
                         ),
                       ),
                     ],

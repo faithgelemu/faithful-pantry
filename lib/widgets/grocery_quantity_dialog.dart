@@ -1,3 +1,4 @@
+
 import 'package:flutter/material.dart';
 
 import '../models/pantry_item.dart';
@@ -30,9 +31,16 @@ class _GroceryQuantityDialogState
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
     return AlertDialog(
       title: Text(
         widget.action == 'used' ? 'Record food used' : 'Record food wasted',
+        style: textTheme.titleLarge?.copyWith(
+          color: colorScheme.onSurface,
+          fontWeight: FontWeight.w700,
+        ),
       ),
       content: SingleChildScrollView(
         child: Form(
@@ -44,6 +52,10 @@ class _GroceryQuantityDialogState
               Text(
                 '${widget.item.name}: '
                 '${widget.item.currentQuantity} remaining.',
+                style: textTheme.bodyMedium?.copyWith(
+                  color: colorScheme.onSurfaceVariant,
+                  height: 1.5,
+                ),
               ),
               const SizedBox(height: 16),
               TextFormField(
@@ -66,8 +78,12 @@ class _GroceryQuantityDialogState
                 },
               ),
               const SizedBox(height: 12),
-              const Text(
+              Text(
                 'Your original purchase and spending stay unchanged.',
+                style: textTheme.bodySmall?.copyWith(
+                  color: colorScheme.onSurfaceVariant,
+                  height: 1.5,
+                ),
               ),
             ],
           ),

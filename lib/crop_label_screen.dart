@@ -1,3 +1,4 @@
+
 import 'dart:typed_data';
 
 import 'package:crop_your_image/crop_your_image.dart';
@@ -50,6 +51,9 @@ class _CropLabelScreenState extends State<CropLabelScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
     return PopScope(
       canPop: !isCropping,
       child: Scaffold(
@@ -60,23 +64,28 @@ class _CropLabelScreenState extends State<CropLabelScreen> {
         body: SafeArea(
           child: Column(
             children: [
-              const Padding(
-                padding: EdgeInsets.all(20),
+              Padding(
+                padding: const EdgeInsets.all(20),
                 child: Text(
                   'Drag the corners to include only the printed date '
                   'and its Use by or Best before wording. '
                   'Leave a small margin around the text.',
-                  style: TextStyle(height: 1.5),
+                  style: textTheme.bodyMedium?.copyWith(
+                    color: colorScheme.onSurfaceVariant,
+                    height: 1.5,
+                  ),
                 ),
               ),
               Expanded(
                 child: Crop(
                   image: widget.bytes,
                   controller: cropController,
-                  baseColor: const Color(0xFFF8FAF5),
-                  maskColor: const Color(0xAA123C25),
-                  progressIndicator: const Center(
-                    child: CircularProgressIndicator(),
+                  baseColor: colorScheme.surface,
+                  maskColor: colorScheme.scrim.withValues(alpha: 0.65),
+                  progressIndicator: Center(
+                    child: CircularProgressIndicator(
+                      color: colorScheme.primary,
+                    ),
                   ),
                   onStatusChanged: (status) {
                     if (!mounted) return;
@@ -119,8 +128,8 @@ class _CropLabelScreenState extends State<CropLabelScreen> {
                         liveRegion: true,
                         child: Text(
                           errorMessage!,
-                          style: TextStyle(
-                            color: Theme.of(context).colorScheme.error,
+                          style: textTheme.bodyMedium?.copyWith(
+                            color: colorScheme.error,
                           ),
                         ),
                       ),
@@ -131,11 +140,12 @@ class _CropLabelScreenState extends State<CropLabelScreen> {
                           ? cropImage
                           : null,
                       icon: isCropping
-                          ? const SizedBox(
+                          ? SizedBox(
                               width: 18,
                               height: 18,
                               child: CircularProgressIndicator(
                                 strokeWidth: 2,
+                                color: colorScheme.onPrimary,
                               ),
                             )
                           : const Icon(Icons.crop),

@@ -8,7 +8,14 @@ import 'services/settings_service.dart';
 import 'weekly_budget_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
-  const ProfileScreen({super.key});
+  const ProfileScreen({
+    super.key,
+    this.themeMode = ThemeMode.system,
+    this.onThemeModeChanged,
+  });
+
+  final ThemeMode themeMode;
+  final ValueChanged<ThemeMode>? onThemeModeChanged;
 
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
@@ -233,6 +240,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     required String description,
     required Widget action,
   }) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Card(
       margin: EdgeInsets.zero,
       child: Padding(
@@ -251,7 +260,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                   child: Icon(
                     icon,
-                    color: const Color(0xFF176B3A),
+                    color: colorScheme.primary,
                   ),
                 ),
                 const SizedBox(width: 14),
@@ -268,11 +277,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                       const SizedBox(height: 6),
                       Text(
-                        description,
-                        style: const TextStyle(
-                          color: Color(0xFF536458),
-                          height: 1.5,
-                        ),
+                      description,
+                      style: TextStyle(
+                      color: colorScheme.onSurfaceVariant,
+                      height: 1.5,
+                      ),
                       ),
                     ],
                   ),
@@ -287,6 +296,46 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+  Widget themeSetting() {
+  return settingCard(
+    icon: Icons.palette_outlined,
+    title: 'Appearance',
+    description:
+        'Choose how Faithful Pantry looks on your device.',
+    action: InputDecorator(
+      decoration: const InputDecoration(
+        labelText: 'Theme preference',
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<ThemeMode>(
+          isExpanded: true,
+          value: widget.themeMode,
+          items: const [
+            DropdownMenuItem(
+              value: ThemeMode.system,
+              child: Text('System default'),
+            ),
+            DropdownMenuItem(
+              value: ThemeMode.light,
+              child: Text('Light mode'),
+            ),
+            DropdownMenuItem(
+              value: ThemeMode.dark,
+              child: Text('Dark mode'),
+            ),
+          ],
+          onChanged: widget.onThemeModeChanged == null
+              ? null
+              : (ThemeMode? newMode) {
+                  if (newMode != null) {
+                    widget.onThemeModeChanged!(newMode);
+                  }
+                },
+        ),
+      ),
+    ),
+  );
+}
   Widget budgetSetting() {
     return StreamBuilder<int?>(
       stream: budgetStream,
@@ -363,6 +412,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
             const SizedBox(height: 14),
             budgetSetting(),
             const SizedBox(height: 16),
+            themeSetting(),
+            const SizedBox(height: 16),
            settingCard(
   icon: Icons.notifications_outlined,
   title: 'Expiry reminders',
@@ -399,14 +450,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
             ),
             const SizedBox(height: 20),
-            const Text(
-              'To sign out, use Log out at the top right.',
-              style: TextStyle(
-                fontSize: 13,
-                height: 1.5,
-                color: Color(0xFF536458),
-              ),
+            Text(
+            'To sign out, use Log out at the top right.',
+            style: TextStyle(
+            fontSize: 13,
+            height: 1.5,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
+        ),
           ],
         ),
       ),

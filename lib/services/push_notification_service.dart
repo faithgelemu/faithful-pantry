@@ -1,3 +1,4 @@
+
 import 'dart:convert';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -36,6 +37,65 @@ class PushNotificationService {
       throw StateError(
         'Your account changed. Please reopen notifications and try again.',
       );
+    }
+  }
+
+  /// Checks whether reminders are genuinely enabled for this device.
+  ///
+  /// This method does not request permission, create a token,
+  /// or create a Firestore registration.
+  Future<bool> isEnabledOnThisDevice() async {
+    if (!kIsWeb) return false;
+
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return false;
+
+    final saved = await _preferences.getString(_registrationKey);
+    if (saved == null) return false;
+
+    try {
+      final decoded = jsonDecode(saved);
+
+      if (decoded is! Map<String, dynamic>) return false;
+
+      final uid = decoded['uid'];
+      final documentId = decoded['documentId'];
+
+      if (uid is! String || documentId is! String) {
+        return false;
+      }
+
+      if (uid != user.uid) return false;
+
+      final settings = await messaging.getNotificationSettings();
+
+      if (settings.authorizationStatus !=
+          AuthorizationStatus.authorized) {
+        return false;
+      }
+
+      _checkUser(user.uid);
+
+      // Confirm that the saved registration has not changed while
+      // the permission check was running.
+      final latest = await _preferences.getString(_registrationKey);
+      if (latest != saved) return false;
+
+      final snapshot = await _registrationDocument(
+        user.uid,
+        documentId,
+      ).get().timeout(const Duration(seconds: 20));
+
+      _checkUser(user.uid);
+
+      // Check once more in case another tab disabled reminders.
+      final finalSaved = await _preferences.getString(_registrationKey);
+      if (finalSaved != saved) return false;
+
+      return snapshot.exists &&
+          snapshot.data()?['enabled'] == true;
+    } on FormatException {
+      return false;
     }
   }
 
@@ -153,7 +213,8 @@ class PushNotificationService {
       _isBusy = false;
     }
   }
-    Future<void> refreshExistingRegistration() async {
+
+  Future<void> refreshExistingRegistration() async {
     if (!kIsWeb || _isBusy) return;
 
     final user = FirebaseAuth.instance.currentUser;

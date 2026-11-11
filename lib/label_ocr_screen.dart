@@ -1,3 +1,4 @@
+
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
@@ -248,6 +249,8 @@ class _LabelOcrScreenState extends State<LabelOcrScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return PopScope(
       canPop: !isBusy,
       child: Scaffold(
@@ -261,18 +264,23 @@ class _LabelOcrScreenState extends State<LabelOcrScreen> {
             child: ListView(
               padding: const EdgeInsets.all(24),
               children: [
-                const Text(
+                Text(
                   'Let’s read the label',
-                  style: TextStyle(
-                    fontSize: 26,
-                    fontWeight: FontWeight.w800,
-                  ),
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                        fontSize: 26,
+                        fontWeight: FontWeight.w800,
+                        color: colorScheme.onSurface,
+                      ),
                 ),
                 const SizedBox(height: 12),
-                const Text(
+                Text(
                   'Choose or photograph a label, then crop around '
                   'its printed date. Recognition runs in your browser; '
                   'OCR library and language files require downloads.',
+                  style: TextStyle(
+                    color: colorScheme.onSurfaceVariant,
+                    height: 1.5,
+                  ),
                 ),
                 const SizedBox(height: 16),
                 OutlinedButton.icon(
@@ -292,11 +300,12 @@ class _LabelOcrScreenState extends State<LabelOcrScreen> {
                 ),
                 if (imageBytes != null) ...[
                   const SizedBox(height: 20),
-                  const Text(
+                  Text(
                     'Selected label area',
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w800,
+                      color: colorScheme.onSurface,
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -308,8 +317,11 @@ class _LabelOcrScreenState extends State<LabelOcrScreen> {
                       fit: BoxFit.contain,
                       semanticLabel: 'Cropped food label',
                       errorBuilder: (context, error, stackTrace) {
-                        return const Text(
+                        return Text(
                           'Preview unavailable. Try another photo.',
+                          style: TextStyle(
+                            color: colorScheme.onSurfaceVariant,
+                          ),
                         );
                       },
                     ),
@@ -331,9 +343,12 @@ class _LabelOcrScreenState extends State<LabelOcrScreen> {
                   const SizedBox(height: 20),
                   const LinearProgressIndicator(),
                   const SizedBox(height: 8),
-                  const Text(
+                  Text(
                     'Please wait. The first recognition may take '
                     'longer while files download.',
+                    style: TextStyle(
+                      color: colorScheme.onSurfaceVariant,
+                    ),
                   ),
                 ],
                 if (errorMessage != null) ...[
@@ -343,33 +358,41 @@ class _LabelOcrScreenState extends State<LabelOcrScreen> {
                     child: Text(
                       errorMessage!,
                       style: TextStyle(
-                        color: Theme.of(context).colorScheme.error,
+                        color: colorScheme.error,
                       ),
                     ),
                   ),
                 ],
                 if (recognisedText != null) ...[
                   const SizedBox(height: 24),
-                  const Text(
+                  Text(
                     'Review before choosing',
                     style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.w800,
+                      color: colorScheme.onSurface,
                     ),
                   ),
                   const SizedBox(height: 8),
-                  const Text(
+                  Text(
                     'Compare the suggestion with the photo. '
                     'It could be a packing date rather than expiry. '
                     'Numeric dates use UK day/month/year. '
                     'Use by and Best before have different meanings.',
+                    style: TextStyle(
+                      color: colorScheme.onSurfaceVariant,
+                      height: 1.5,
+                    ),
                   ),
                   const SizedBox(height: 12),
                   if (suggestions.isEmpty)
-                    const Text(
+                    Text(
                       'No supported complete date found. Adjust '
                       'the crop, try a clearer photo, or go back '
                       'to enter the date manually.',
+                      style: TextStyle(
+                        color: colorScheme.onSurfaceVariant,
+                      ),
                     )
                   else
                     ...suggestions.map((suggestion) {
@@ -382,24 +405,39 @@ class _LabelOcrScreenState extends State<LabelOcrScreen> {
                             children: [
                               Text(
                                 dateLabel(suggestion.date),
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 22,
                                   fontWeight: FontWeight.w800,
+                                  color: colorScheme.onSurface,
                                 ),
                               ),
                               const SizedBox(height: 6),
                               Text(
                                 'Read as: ${suggestion.originalText}',
+                                style: TextStyle(
+                                  color: colorScheme.onSurfaceVariant,
+                                ),
                               ),
-                              Text('Label: ${suggestion.label}'),
-if (suggestion.assumedDay)
-  const Text(
-    'Day not printed — last day of month used. '
-    'Check the label before confirming.',
-  ),
+                              Text(
+                                'Label: ${suggestion.label}',
+                                style: TextStyle(
+                                  color: colorScheme.onSurfaceVariant,
+                                ),
+                              ),
+                              if (suggestion.assumedDay)
+                                Text(
+                                  'Day not printed — last day of month used. '
+                                  'Check the label before confirming.',
+                                  style: TextStyle(
+                                    color: colorScheme.onSurfaceVariant,
+                                  ),
+                                ),
                               if (suggestion.assumedYear)
-                                const Text(
+                                Text(
                                   'Year missing — current year assumed.',
+                                  style: TextStyle(
+                                    color: colorScheme.onSurfaceVariant,
+                                  ),
                                 ),
                               const SizedBox(height: 12),
                               OutlinedButton(
@@ -426,13 +464,19 @@ if (suggestion.assumedDay)
                         recognisedText!.isEmpty
                             ? 'No text recognised.'
                             : recognisedText!,
+                        style: TextStyle(
+                          color: colorScheme.onSurface,
+                        ),
                       ),
                     ],
                   ),
                   const SizedBox(height: 12),
-                  const Text(
+                  Text(
                     'Nothing is saved here. You can correct the '
                     'selected date in the grocery form.',
+                    style: TextStyle(
+                      color: colorScheme.onSurfaceVariant,
+                    ),
                   ),
                 ],
               ],

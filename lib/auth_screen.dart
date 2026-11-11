@@ -1,3 +1,4 @@
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
@@ -159,6 +160,9 @@ class _AuthScreenState extends State<AuthScreen> {
   }
 
   Widget accountForm() {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
     return Card(
       margin: EdgeInsets.zero,
       child: Padding(
@@ -170,11 +174,9 @@ class _AuthScreenState extends State<AuthScreen> {
             children: [
               Text(
                 isLogin ? 'Welcome back' : 'Make yourself at home',
-                style: const TextStyle(
-                  fontSize: 25,
-                  height: 1.2,
+                style: textTheme.headlineSmall?.copyWith(
                   fontWeight: FontWeight.w800,
-                  color: Color(0xFF123C25),
+                  color: colorScheme.onSurface,
                 ),
               ),
               const SizedBox(height: 8),
@@ -182,9 +184,9 @@ class _AuthScreenState extends State<AuthScreen> {
                 isLogin
                     ? 'Log in to your Faithful Pantry account.'
                     : 'Create your Faithful Pantry account.',
-                style: const TextStyle(
+                style: textTheme.bodyMedium?.copyWith(
                   height: 1.5,
-                  color: Color(0xFF536458),
+                  color: colorScheme.onSurfaceVariant,
                 ),
               ),
               const SizedBox(height: 24),
@@ -281,18 +283,14 @@ class _AuthScreenState extends State<AuthScreen> {
                   child: Container(
                     padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
-                      color: Theme.of(context)
-                          .colorScheme
-                          .errorContainer,
+                      color: colorScheme.errorContainer,
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(
                       errorMessage!,
-                      style: TextStyle(
+                      style: textTheme.bodyMedium?.copyWith(
                         height: 1.5,
-                        color: Theme.of(context)
-                            .colorScheme
-                            .onErrorContainer,
+                        color: colorScheme.onErrorContainer,
                       ),
                     ),
                   ),
@@ -302,11 +300,12 @@ class _AuthScreenState extends State<AuthScreen> {
               FilledButton(
                 onPressed: isLoading ? null : submit,
                 child: isLoading
-                    ? const SizedBox(
+                    ? SizedBox(
                         width: 20,
                         height: 20,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
+                          color: colorScheme.onPrimary,
                         ),
                       )
                     : Text(isLogin ? 'Login' : 'Create account'),

@@ -1,3 +1,4 @@
+
 import 'package:flutter/material.dart';
 
 import 'edit_grocery_screen.dart';
@@ -90,13 +91,15 @@ class _PantryScreenState extends State<PantryScreen>
     return 'Expires in $days days • ${dateLabel(date)}';
   }
 
+  // Expiry colours now follow the active application theme.
   Color expiryColor(String value, DateTime today) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return switch (ExpiryUtils.statusFor(value, today: today)) {
-      ExpiryStatus.expired => Theme.of(context).colorScheme.error,
-      ExpiryStatus.expiringSoon => Colors.orange.shade800,
-      ExpiryStatus.later => Colors.green.shade800,
-      ExpiryStatus.unknown =>
-        Theme.of(context).colorScheme.onSurfaceVariant,
+      ExpiryStatus.expired => colorScheme.error,
+      ExpiryStatus.expiringSoon => colorScheme.tertiary,
+      ExpiryStatus.later => colorScheme.primary,
+      ExpiryStatus.unknown => colorScheme.onSurfaceVariant,
     };
   }
 
@@ -216,6 +219,7 @@ class _PantryScreenState extends State<PantryScreen>
 
   Widget groceryCard(PantryItem item, DateTime today) {
     final color = expiryColor(item.expiryDate, today);
+    final colorScheme = Theme.of(context).colorScheme;
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
@@ -228,8 +232,8 @@ class _PantryScreenState extends State<PantryScreen>
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 GroceryCategoryIcon(
-  category: item.category,
-),
+                  category: item.category,
+                ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
@@ -244,41 +248,41 @@ class _PantryScreenState extends State<PantryScreen>
                       ),
                       const SizedBox(height: 4),
                       Text(
-  item.category,
-  style: const TextStyle(
-    fontSize: 13,
-    color: Color(0xFF536458),
-  ),
-),
-const SizedBox(height: 10),
-Text(
-  '${item.currentQuantity} remaining',
-  style: const TextStyle(
-    fontSize: 16,
-    fontWeight: FontWeight.w700,
-    color: Color(0xFF20382B),
-  ),
-),
-const SizedBox(height: 10),
-Container(
-  padding: const EdgeInsets.symmetric(
-    horizontal: 10,
-    vertical: 7,
-  ),
-  decoration: BoxDecoration(
-    color: color.withValues(alpha: 0.08),
-    borderRadius: BorderRadius.circular(10),
-  ),
-  child: Text(
-    expiryLabel(item.expiryDate, today),
-    style: TextStyle(
-      fontSize: 13,
-      height: 1.4,
-      color: color,
-      fontWeight: FontWeight.w700,
-    ),
-  ),
-),
+                        item.category,
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      Text(
+                        '${item.currentQuantity} remaining',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: colorScheme.onSurface,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 7,
+                        ),
+                        decoration: BoxDecoration(
+                          color: color.withValues(alpha: 0.08),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Text(
+                          expiryLabel(item.expiryDate, today),
+                          style: TextStyle(
+                            fontSize: 13,
+                            height: 1.4,
+                            color: color,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
                     ],
                   ),
                 ),
