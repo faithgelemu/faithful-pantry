@@ -249,8 +249,7 @@ ChatGPT assisted with development guidance, code generation and
 revision, troubleshooting, test design and documentation.
 
 Verification results and known limitations are recorded in the
-project documentation. AI-assisted work should also be acknowledged
-in the assessed report as required by the module instructions.
+project documentation.
 
 ## Fonts
 
