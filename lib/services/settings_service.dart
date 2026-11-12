@@ -1,7 +1,12 @@
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 class SettingsService {
+  static const int defaultExpiryReminderDays = 3;
+  static const int minimumExpiryReminderDays = 1;
+  static const int maximumExpiryReminderDays = 7;
+
   DocumentReference<Map<String, dynamic>> get _preferences {
     final user = FirebaseAuth.instance.currentUser;
 
@@ -43,35 +48,71 @@ class SettingsService {
       SetOptions(merge: true),
     );
   }
-  Stream<String?> watchPreferredName() {
-  return _preferences.snapshots().map((snapshot) {
-    final value = snapshot.data()?['preferredName'];
 
-    if (value is! String || value.trim().isEmpty) {
-      return null;
+  Stream<int> watchExpiryReminderDays() {
+    return _preferences.snapshots().map((snapshot) {
+      final value = snapshot.data()?['expiryReminderDays'];
+
+      if (value == null) {
+        return defaultExpiryReminderDays;
+      }
+
+      if (value is! int ||
+          value < minimumExpiryReminderDays ||
+          value > maximumExpiryReminderDays) {
+        throw StateError('The saved expiry reminder period is invalid.');
+      }
+
+      return value;
+    });
+  }
+
+  Future<void> saveExpiryReminderDays(int days) async {
+    if (days < minimumExpiryReminderDays ||
+        days > maximumExpiryReminderDays) {
+      throw ArgumentError(
+        'Choose an expiry reminder period from 1 to 7 days.',
+      );
     }
 
-    return value.trim();
-  });
-}
-
-Future<void> savePreferredName(String name) async {
-  final cleanedName = name.trim();
-
-  if (cleanedName.runes.length > 40) {
-    throw ArgumentError(
-      'Use a preferred name of up to 40 characters.',
+    await _preferences.set(
+      {
+        'expiryReminderDays': days,
+        'updatedAt': FieldValue.serverTimestamp(),
+      },
+      SetOptions(merge: true),
     );
   }
 
-  await _preferences.set(
-    {
-      'preferredName': cleanedName.isEmpty
-          ? FieldValue.delete()
-          : cleanedName,
-      'updatedAt': FieldValue.serverTimestamp(),
-    },
-    SetOptions(merge: true),
-  );
-}
+  Stream<String?> watchPreferredName() {
+    return _preferences.snapshots().map((snapshot) {
+      final value = snapshot.data()?['preferredName'];
+
+      if (value is! String || value.trim().isEmpty) {
+        return null;
+      }
+
+      return value.trim();
+    });
+  }
+
+  Future<void> savePreferredName(String name) async {
+    final cleanedName = name.trim();
+
+    if (cleanedName.runes.length > 40) {
+      throw ArgumentError(
+        'Use a preferred name of up to 40 characters.',
+      );
+    }
+
+    await _preferences.set(
+      {
+        'preferredName': cleanedName.isEmpty
+            ? FieldValue.delete()
+            : cleanedName,
+        'updatedAt': FieldValue.serverTimestamp(),
+      },
+      SetOptions(merge: true),
+    );
+  }
 }

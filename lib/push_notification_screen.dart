@@ -3,6 +3,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 
 import 'services/push_notification_service.dart';
+import 'services/settings_service.dart';
 
 class PushNotificationScreen extends StatefulWidget {
   const PushNotificationScreen({super.key});
@@ -15,12 +16,23 @@ class PushNotificationScreen extends StatefulWidget {
 class _PushNotificationScreenState extends State<PushNotificationScreen>
     with WidgetsBindingObserver {
   final service = PushNotificationService();
+  final settingsService = SettingsService();
 
   bool isBusy = false;
   bool isCheckingStatus = false;
   bool notificationsEnabled = false;
 
+  bool isLoadingReminderPeriod = true;
+  bool isSavingReminderPeriod = false;
+
+  int selectedReminderDays =
+      SettingsService.defaultExpiryReminderDays;
+  int savedReminderDays =
+      SettingsService.defaultExpiryReminderDays;
+
   String? errorMessage;
+  String? reminderPeriodError;
+  String? reminderPeriodMessage;
 
   String statusMessage = 'Checking your notification settings...';
 
@@ -29,6 +41,7 @@ class _PushNotificationScreenState extends State<PushNotificationScreen>
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     checkNotificationStatus();
+    loadReminderPeriod();
   }
 
   @override
@@ -41,6 +54,87 @@ class _PushNotificationScreenState extends State<PushNotificationScreen>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed && !isBusy) {
       checkNotificationStatus();
+      loadReminderPeriod();
+    }
+  }
+
+  Future<void> loadReminderPeriod() async {
+    if (isSavingReminderPeriod) return;
+
+    setState(() {
+      isLoadingReminderPeriod = true;
+      reminderPeriodError = null;
+    });
+
+    try {
+      final days = await settingsService
+          .watchExpiryReminderDays()
+          .first;
+
+      if (!mounted) return;
+
+      setState(() {
+        selectedReminderDays = days;
+        savedReminderDays = days;
+        isLoadingReminderPeriod = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+
+      setState(() {
+        isLoadingReminderPeriod = false;
+        reminderPeriodError =
+            'Unable to load your reminder period. Please try again.';
+      });
+    }
+  }
+
+  Future<void> saveReminderPeriod() async {
+    if (isSavingReminderPeriod ||
+        isLoadingReminderPeriod ||
+        selectedReminderDays == savedReminderDays) {
+      return;
+    }
+
+    setState(() {
+      isSavingReminderPeriod = true;
+      reminderPeriodError = null;
+      reminderPeriodMessage = null;
+    });
+
+    try {
+      await settingsService.saveExpiryReminderDays(
+        selectedReminderDays,
+      );
+
+      if (!mounted) return;
+
+      setState(() {
+        savedReminderDays = selectedReminderDays;
+        reminderPeriodMessage =
+            'Your reminder period has been saved.';
+      });
+    } on FirebaseException catch (_) {
+      if (!mounted) return;
+
+      setState(() {
+        reminderPeriodError =
+            'Unable to save your preference. Check your connection '
+            'and try again.';
+      });
+    } catch (_) {
+      if (!mounted) return;
+
+      setState(() {
+        reminderPeriodError =
+            'Unable to save your reminder period. Please try again.';
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          isSavingReminderPeriod = false;
+        });
+      }
     }
   }
 
@@ -172,6 +266,125 @@ class _PushNotificationScreenState extends State<PushNotificationScreen>
     });
   }
 
+  Widget reminderPeriodCard() {
+    return Card(
+      margin: EdgeInsets.zero,
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const Text(
+              'Reminder period',
+              style: TextStyle(
+                fontSize: 19,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Choose how many days before expiry you would like '
+              'Faithful Pantry to start reminding you.',
+              style: TextStyle(height: 1.5),
+            ),
+            const SizedBox(height: 16),
+            if (isLoadingReminderPeriod)
+              const LinearProgressIndicator()
+            else
+              InputDecorator(
+                decoration: const InputDecoration(
+                  labelText: 'Remind me before expiry',
+                  border: OutlineInputBorder(),
+                ),
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<int>(
+                    value: selectedReminderDays,
+                    isExpanded: true,
+                    items: List.generate(7, (index) {
+                      final days = index + 1;
+
+                      return DropdownMenuItem<int>(
+                        value: days,
+                        child: Text(
+                          '$days ${days == 1 ? 'day' : 'days'} before expiry',
+                        ),
+                      );
+                    }),
+                    onChanged: isSavingReminderPeriod
+                        ? null
+                        : (value) {
+                            if (value == null) return;
+
+                            setState(() {
+                              selectedReminderDays = value;
+                              reminderPeriodMessage = null;
+                              reminderPeriodError = null;
+                            });
+                          },
+                  ),
+                ),
+              ),
+            const SizedBox(height: 16),
+            FilledButton.icon(
+              onPressed: isLoadingReminderPeriod ||
+                      isSavingReminderPeriod ||
+                      selectedReminderDays == savedReminderDays
+                  ? null
+                  : saveReminderPeriod,
+              icon: isSavingReminderPeriod
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                      ),
+                    )
+                  : const Icon(Icons.save_outlined),
+              label: Text(
+                isSavingReminderPeriod
+                    ? 'Saving...'
+                    : 'Save reminder period',
+              ),
+            ),
+            if (reminderPeriodMessage != null) ...[
+              const SizedBox(height: 12),
+              Semantics(
+                liveRegion: true,
+                child: Text(
+                  reminderPeriodMessage!,
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.primary,
+                    height: 1.5,
+                  ),
+                ),
+              ),
+            ],
+            if (reminderPeriodError != null) ...[
+              const SizedBox(height: 12),
+              Semantics(
+                liveRegion: true,
+                child: Text(
+                  reminderPeriodError!,
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.error,
+                    height: 1.5,
+                  ),
+                ),
+              ),
+              TextButton.icon(
+                onPressed: isSavingReminderPeriod
+                    ? null
+                    : loadReminderPeriod,
+                icon: const Icon(Icons.refresh),
+                label: const Text('Try again'),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget reminderDetails() {
     return Card(
       margin: EdgeInsets.zero,
@@ -188,10 +401,10 @@ class _PushNotificationScreenState extends State<PushNotificationScreen>
               ),
             ),
             const SizedBox(height: 12),
-            const Text(
+            Text(
               'We check daily for active groceries expiring today '
-              'or within the next three days.',
-              style: TextStyle(height: 1.5),
+              'or within $savedReminderDays days.',
+              style: const TextStyle(height: 1.5),
             ),
             const SizedBox(height: 12),
             const Text(
@@ -215,11 +428,11 @@ class _PushNotificationScreenState extends State<PushNotificationScreen>
   @override
   Widget build(BuildContext context) {
     return PopScope(
-      canPop: !isBusy,
+      canPop: !isBusy && !isSavingReminderPeriod,
       child: Scaffold(
         appBar: AppBar(
           title: const Text('Expiry reminders'),
-          automaticallyImplyLeading: !isBusy,
+          automaticallyImplyLeading: !isBusy && !isSavingReminderPeriod,
         ),
         body: Center(
           child: ConstrainedBox(
@@ -345,6 +558,8 @@ class _PushNotificationScreenState extends State<PushNotificationScreen>
                     ),
                   ),
                 ),
+                const SizedBox(height: 16),
+                reminderPeriodCard(),
                 const SizedBox(height: 16),
                 reminderDetails(),
                 const SizedBox(height: 20),

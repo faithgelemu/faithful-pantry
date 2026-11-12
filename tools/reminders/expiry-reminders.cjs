@@ -1,3 +1,4 @@
+
 "use strict";
 
 const { createHash } = require("node:crypto");
@@ -6,7 +7,10 @@ const { GoogleAuth } = require("google-auth-library");
 
 const PROJECT_ID = "faithful-pantry";
 const TIME_ZONE = "Europe/London";
-const SOON_DAYS = 3;
+
+const DEFAULT_REMINDER_DAYS = 3;
+const MIN_REMINDER_DAYS = 1;
+const MAX_REMINDER_DAYS = 7;
 
 const MAX_INSTALLATIONS = 100;
 const MAX_PANTRY_ITEMS = 1000;
@@ -51,7 +55,25 @@ function dateNumber(value) {
   return date.getTime() / 86400000;
 }
 
-function needsReminder(item, today) {
+function reminderDaysFromSettings(settings) {
+  const value = settings?.expiryReminderDays;
+
+  if (
+    Number.isInteger(value) &&
+    value >= MIN_REMINDER_DAYS &&
+    value <= MAX_REMINDER_DAYS
+  ) {
+    return value;
+  }
+
+  return DEFAULT_REMINDER_DAYS;
+}
+
+function needsReminder(
+  item,
+  today,
+  reminderDays = DEFAULT_REMINDER_DAYS
+) {
   if (
     item.status !== "active" ||
     !Number.isInteger(item.currentQuantity) ||
@@ -65,8 +87,12 @@ function needsReminder(item, today) {
 
   if (expiry === null || current === null) return false;
 
+  const threshold = reminderDaysFromSettings({
+    expiryReminderDays: reminderDays
+  });
+
   const days = expiry - current;
-  return days >= 0 && days <= SOON_DAYS;
+  return days >= 0 && days <= threshold;
 }
 
 function deliveryId(registrationPath, today) {
@@ -212,26 +238,39 @@ async function main() {
     const uid = segments[1];
 
     if (!ownerCounts.has(uid)) {
-      const pantry = await db
-        .collection("users")
-        .doc(uid)
-        .collection("pantry")
-        .limit(MAX_PANTRY_ITEMS + 1)
-        .get();
+      const userRef = db.collection("users").doc(uid);
+
+      const [pantry, preferences] = await Promise.all([
+        userRef
+          .collection("pantry")
+          .limit(MAX_PANTRY_ITEMS + 1)
+          .get(),
+        userRef
+          .collection("settings")
+          .doc("preferences")
+          .get()
+      ]);
 
       if (pantry.size > MAX_PANTRY_ITEMS) {
         throw new Error("Pantry scan limit exceeded.");
       }
 
-      ownerCounts.set(
-        uid,
-        pantry.docs.filter(
-          (document) => needsReminder(document.data(), today)
-        ).length
+      const reminderDays = reminderDaysFromSettings(
+        preferences.data()
       );
+
+      const reminderCount = pantry.docs.filter(
+        (document) =>
+          needsReminder(document.data(), today, reminderDays)
+      ).length;
+
+      ownerCounts.set(uid, {
+        reminderCount,
+        reminderDays
+      });
     }
 
-    if (ownerCounts.get(uid) > 0) {
+    if (ownerCounts.get(uid).reminderCount > 0) {
       eligible.push({ registration, token: data.token });
     }
   }
@@ -311,7 +350,9 @@ async function main() {
     mode: send ? "send" : "dry-run",
     calendarDate: today,
     timeZone: TIME_ZONE,
-    soonThresholdDays: SOON_DAYS,
+    defaultReminderDays: DEFAULT_REMINDER_DAYS,
+    minimumReminderDays: MIN_REMINDER_DAYS,
+    maximumReminderDays: MAX_REMINDER_DAYS,
     enabledInstallations,
     accountsChecked: ownerCounts.size,
     installationsThatWouldReceiveReminder: eligible.length,
@@ -356,6 +397,7 @@ if (require.main === module) {
 module.exports = {
   calendarDate,
   dateNumber,
+  reminderDaysFromSettings,
   needsReminder,
   deliveryId,
   notificationMessage,
