@@ -1,3 +1,4 @@
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
@@ -10,9 +11,9 @@ import 'home_dashboard.dart';
 import 'pantry_screen.dart';
 import 'profile_screen.dart';
 import 'services/push_notification_service.dart';
-import 'widgets/push_registration_refresh.dart';
 import 'services/theme_service.dart';
-
+import 'services/text_scale_service.dart';
+import 'widgets/push_registration_refresh.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -30,44 +31,80 @@ class FaithfulPantryApp extends StatefulWidget {
   @override
   State<FaithfulPantryApp> createState() => _FaithfulPantryAppState();
 }
+
 class _FaithfulPantryAppState extends State<FaithfulPantryApp> {
+  late final Stream<User?> _authStateChanges =
+  FirebaseAuth.instance.authStateChanges();
   final ThemeService _themeService = ThemeService();
 
   ThemeMode _themeMode = ThemeMode.system;
+
+    final TextScaleService _textScaleService = TextScaleService();
+
+    double _textScale = TextScaleService.defaultScale;
 
   @override
   void initState() {
     super.initState();
     _loadThemeMode();
+    _loadTextScale();
   }
 
   Future<void> _loadThemeMode() async {
+    try {
+      final savedTheme = await _themeService.loadThemeMode();
+
+      if (!mounted) return;
+
+      setState(() {
+        _themeMode = savedTheme;
+      });
+    } catch (error) {
+      debugPrint('Unable to load theme preference: $error');
+    }
+  }
+
+  Future<void> _loadTextScale() async {
   try {
-    final savedTheme = await _themeService.loadThemeMode();
+    final savedScale = await _textScaleService.loadTextScale();
 
     if (!mounted) return;
 
     setState(() {
-      _themeMode = savedTheme;
+      _textScale = savedScale;
     });
   } catch (error) {
-    debugPrint('Unable to load theme preference: $error');
+    debugPrint('Unable to load text size preference: $error');
   }
-  }
+}
 
-  Future<void> _changeThemeMode(ThemeMode newMode) async {
-  if (_themeMode == newMode) return;
+Future<void> _changeTextScale(double newScale) async {
+  if (_textScale == newScale) return;
 
   setState(() {
-    _themeMode = newMode;
+    _textScale = newScale;
   });
 
   try {
-    await _themeService.saveThemeMode(newMode);
+    await _textScaleService.saveTextScale(newScale);
   } catch (error) {
-    debugPrint('Unable to save theme preference: $error');
+    debugPrint('Unable to save text size preference: $error');
   }
 }
+
+  Future<void> _changeThemeMode(ThemeMode newMode) async {
+    if (_themeMode == newMode) return;
+
+    setState(() {
+      _themeMode = newMode;
+    });
+
+    try {
+      await _themeService.saveThemeMode(newMode);
+    } catch (error) {
+      debugPrint('Unable to save theme preference: $error');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -75,10 +112,13 @@ class _FaithfulPantryAppState extends State<FaithfulPantryApp> {
       title: 'Faithful Pantry',
       debugShowCheckedModeBanner: false,
       themeMode: _themeMode,
+
+      // LIGHT THEME
       theme: ThemeData(
         useMaterial3: true,
         fontFamily: 'NunitoSans',
         scaffoldBackgroundColor: const Color(0xFFF8FAF5),
+
         colorScheme: ColorScheme.fromSeed(
           seedColor: const Color(0xFF1DB954),
           brightness: Brightness.light,
@@ -94,11 +134,13 @@ class _FaithfulPantryAppState extends State<FaithfulPantryApp> {
           outline: const Color(0xFF738574),
           outlineVariant: const Color(0xFFDCE7D8),
         ),
+
         textTheme: ThemeData.light().textTheme.apply(
               fontFamily: 'NunitoSans',
               bodyColor: const Color(0xFF20382B),
               displayColor: const Color(0xFF123C25),
             ),
+
         appBarTheme: const AppBarTheme(
           backgroundColor: Color(0xFFF8FAF5),
           foregroundColor: Color(0xFF123C25),
@@ -113,6 +155,7 @@ class _FaithfulPantryAppState extends State<FaithfulPantryApp> {
             color: Color(0xFF123C25),
           ),
         ),
+
         cardTheme: CardThemeData(
           color: Colors.white,
           surfaceTintColor: Colors.transparent,
@@ -124,6 +167,7 @@ class _FaithfulPantryAppState extends State<FaithfulPantryApp> {
             ),
           ),
         ),
+
         inputDecorationTheme: InputDecorationTheme(
           filled: true,
           fillColor: Colors.white,
@@ -148,6 +192,7 @@ class _FaithfulPantryAppState extends State<FaithfulPantryApp> {
             ),
           ),
         ),
+
         filledButtonTheme: FilledButtonThemeData(
           style: FilledButton.styleFrom(
             minimumSize: const Size(48, 50),
@@ -165,6 +210,7 @@ class _FaithfulPantryAppState extends State<FaithfulPantryApp> {
             ),
           ),
         ),
+
         outlinedButtonTheme: OutlinedButtonThemeData(
           style: OutlinedButton.styleFrom(
             minimumSize: const Size(48, 48),
@@ -182,6 +228,7 @@ class _FaithfulPantryAppState extends State<FaithfulPantryApp> {
             ),
           ),
         ),
+
         textButtonTheme: TextButtonThemeData(
           style: TextButton.styleFrom(
             minimumSize: const Size(48, 48),
@@ -207,72 +254,236 @@ class _FaithfulPantryAppState extends State<FaithfulPantryApp> {
         ),
       ),
 
-darkTheme: ThemeData(
-  useMaterial3: true,
-  fontFamily: 'NunitoSans',
+      // DARK THEME
+      darkTheme: ThemeData(
+        useMaterial3: true,
+        fontFamily: 'NunitoSans',
 
-  colorScheme: const ColorScheme.dark(
-    primary: Color(0xFF8FE3A8),
-    onPrimary: Color(0xFF12351D),
+        colorScheme: const ColorScheme.dark(
+          primary: Color(0xFF8FE3A8),
+          onPrimary: Color(0xFF12351D),
 
-    secondary: Color(0xFFB5EFC5),
-    onSecondary: Color(0xFF153820),
+          primaryContainer: Color(0xFF285638),
+          onPrimaryContainer: Color(0xFFDDF5DF),
 
-    surface: Color(0xFF18251D),
-    onSurface: Color(0xFFF5F8F5),
+          secondary: Color(0xFFB5EFC5),
+          onSecondary: Color(0xFF153820),
 
-    error: Color(0xFFFFB4AB),
-    onError: Color(0xFF690005),
-  ),
+          tertiary: Color(0xFFFFC078),
+          onTertiary: Color(0xFF402600),
 
-  scaffoldBackgroundColor: Color(0xFF101A14),
+          surface: Color(0xFF18251D),
+          onSurface: Color(0xFFF5F8F5),
 
-  textTheme: const TextTheme(
-    displayLarge: TextStyle(
-      color: Color(0xFFFFFFFF),
-      fontWeight: FontWeight.bold,
-    ),
-    headlineLarge: TextStyle(
-      color: Color(0xFFFFFFFF),
-      fontWeight: FontWeight.bold,
-    ),
-    headlineMedium: TextStyle(
-      color: Color(0xFFFFFFFF),
-      fontWeight: FontWeight.bold,
-    ),
-    titleLarge: TextStyle(
-      color: Color(0xFFFFFFFF),
-      fontWeight: FontWeight.w700,
-    ),
-    titleMedium: TextStyle(
-      color: Color(0xFFF5F8F5),
-      fontWeight: FontWeight.w600,
-    ),
-    bodyLarge: TextStyle(
-      color: Color(0xFFF5F8F5),
-      fontSize: 16,
-    ),
-    bodyMedium: TextStyle(
-      color: Color(0xFFE4EDE6),
-      fontSize: 15,
-    ),
-    bodySmall: TextStyle(
-      color: Color(0xFFCDD9CF),
-      fontSize: 14,
-    ),
-    labelLarge: TextStyle(
-      color: Color(0xFFF5F8F5),
-      fontWeight: FontWeight.w600,
-    ),
-  ),
-),
+          surfaceContainerLowest: Color(0xFF101A14),
+          surfaceContainerLow: Color(0xFF1D2B22),
+          surfaceContainer: Color(0xFF223128),
+          surfaceContainerHigh: Color(0xFF25362A),
+          surfaceContainerHighest: Color(0xFF2C3D31),
 
+          onSurfaceVariant: Color(0xFFCDD9CF),
+
+          outline: Color(0xFF819487),
+          outlineVariant: Color(0xFF3B4B40),
+
+          error: Color(0xFFFFB4AB),
+          onError: Color(0xFF690005),
+          errorContainer: Color(0xFF93000A),
+          onErrorContainer: Color(0xFFFFDAD6),
+        ),
+
+        scaffoldBackgroundColor: const Color(0xFF101A14),
+
+        textTheme: const TextTheme(
+          displayLarge: TextStyle(
+            color: Color(0xFFFFFFFF),
+            fontWeight: FontWeight.bold,
+          ),
+          headlineLarge: TextStyle(
+            color: Color(0xFFFFFFFF),
+            fontWeight: FontWeight.bold,
+          ),
+          headlineMedium: TextStyle(
+            color: Color(0xFFFFFFFF),
+            fontWeight: FontWeight.bold,
+          ),
+          headlineSmall: TextStyle(
+            color: Color(0xFFF5F8F5),
+            fontWeight: FontWeight.bold,
+          ),
+          titleLarge: TextStyle(
+            color: Color(0xFFFFFFFF),
+            fontWeight: FontWeight.w700,
+          ),
+          titleMedium: TextStyle(
+            color: Color(0xFFF5F8F5),
+            fontWeight: FontWeight.w600,
+          ),
+          titleSmall: TextStyle(
+            color: Color(0xFFF5F8F5),
+            fontWeight: FontWeight.w600,
+          ),
+          bodyLarge: TextStyle(
+            color: Color(0xFFF5F8F5),
+            fontSize: 16,
+          ),
+          bodyMedium: TextStyle(
+            color: Color(0xFFE4EDE6),
+            fontSize: 15,
+          ),
+          bodySmall: TextStyle(
+            color: Color(0xFFCDD9CF),
+            fontSize: 14,
+          ),
+          labelLarge: TextStyle(
+            color: Color(0xFFF5F8F5),
+            fontWeight: FontWeight.w600,
+          ),
+          labelMedium: TextStyle(
+            color: Color(0xFFE4EDE6),
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+
+        appBarTheme: const AppBarTheme(
+          backgroundColor: Color(0xFF101A14),
+          foregroundColor: Color(0xFFF5F8F5),
+          surfaceTintColor: Colors.transparent,
+          elevation: 0,
+          scrolledUnderElevation: 0,
+          centerTitle: false,
+          titleTextStyle: TextStyle(
+            fontFamily: 'NunitoSans',
+            fontSize: 22,
+            fontWeight: FontWeight.w800,
+            color: Color(0xFFF5F8F5),
+          ),
+        ),
+
+        cardTheme: CardThemeData(
+          color: const Color(0xFF1D2B22),
+          surfaceTintColor: Colors.transparent,
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+            side: const BorderSide(
+              color: Color(0xFF3B4B40),
+            ),
+          ),
+        ),
+
+        inputDecorationTheme: InputDecorationTheme(
+          filled: true,
+          fillColor: const Color(0xFF1D2B22),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 18,
+          ),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+            borderSide: const BorderSide(
+              color: Color(0xFF536458),
+            ),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+            borderSide: const BorderSide(
+              color: Color(0xFF8FE3A8),
+              width: 2,
+            ),
+          ),
+        ),
+
+        filledButtonTheme: FilledButtonThemeData(
+          style: FilledButton.styleFrom(
+            minimumSize: const Size(48, 50),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 22,
+              vertical: 14,
+            ),
+            textStyle: const TextStyle(
+              fontFamily: 'NunitoSans',
+              fontSize: 16,
+              fontWeight: FontWeight.w800,
+            ),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(14),
+            ),
+          ),
+        ),
+
+        outlinedButtonTheme: OutlinedButtonThemeData(
+          style: OutlinedButton.styleFrom(
+            minimumSize: const Size(48, 48),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 18,
+              vertical: 12,
+            ),
+            foregroundColor: const Color(0xFF8FE3A8),
+            side: const BorderSide(
+              color: Color(0xFF819487),
+            ),
+            textStyle: const TextStyle(
+              fontFamily: 'NunitoSans',
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
+            ),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(14),
+            ),
+          ),
+        ),
+
+        textButtonTheme: TextButtonThemeData(
+          style: TextButton.styleFrom(
+            minimumSize: const Size(48, 48),
+            foregroundColor: const Color(0xFF8FE3A8),
+            textStyle: const TextStyle(
+              fontFamily: 'NunitoSans',
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ),
+
+        navigationBarTheme: const NavigationBarThemeData(
+          backgroundColor: Color(0xFF18251D),
+          surfaceTintColor: Colors.transparent,
+          indicatorColor: Color(0xFF285638),
+          labelTextStyle: WidgetStatePropertyAll(
+            TextStyle(
+              fontFamily: 'NunitoSans',
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFFF5F8F5),
+            ),
+          ),
+        ),
+      ),
+
+      builder: (context, child) {
+        final mediaQuery = MediaQuery.of(context);
+
+        return MediaQuery(
+          data: mediaQuery.copyWith(
+            textScaler: TextScaler.linear(_textScale),
+          ),
+          child: child!,
+        );
+      },
+
+      // AUTHENTICATION AND APP NAVIGATION
       home: StreamBuilder<User?>(
-        stream: FirebaseAuth.instance.authStateChanges(),
+        stream: _authStateChanges,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Scaffold(
-              body: Center(child: CircularProgressIndicator()),
+              body: Center(
+                child: CircularProgressIndicator(),
+              ),
             );
           }
 
@@ -293,17 +504,19 @@ darkTheme: ThemeData(
 
           final user = snapshot.data;
 
-         if (user != null) {
-          return PushRegistrationRefresh(
-          key: ValueKey(user.uid),
-          userId: user.uid,
-          child: HomeScreen(
-          key: ValueKey(user.uid),
-          themeMode: _themeMode,
-          onThemeModeChanged: _changeThemeMode,
-          ),
-          );
-        }
+          if (user != null) {
+            return PushRegistrationRefresh(
+              key: ValueKey(user.uid),
+              userId: user.uid,
+              child: HomeScreen(
+                key: ValueKey(user.uid),
+                themeMode: _themeMode,
+                onThemeModeChanged: _changeThemeMode,
+                textScale: _textScale,
+                onTextScaleChanged: _changeTextScale,
+              ),
+            );
+          }
 
           return const AuthScreen();
         },
@@ -325,6 +538,8 @@ class HomeScreen extends StatefulWidget {
     this.detailBuilder,
     this.themeMode = ThemeMode.system,
     this.onThemeModeChanged,
+    this.textScale = TextScaleService.defaultScale,
+    this.onTextScaleChanged,
   });
 
   final List<Widget>? testPages;
@@ -338,6 +553,8 @@ class HomeScreen extends StatefulWidget {
 
   final ThemeMode themeMode;
   final ValueChanged<ThemeMode>? onThemeModeChanged;
+  final double textScale;
+  final ValueChanged<double>? onTextScaleChanged;
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -462,8 +679,11 @@ class _HomeScreenState extends State<HomeScreen> {
         return const BudgetScreen();
       default:
       return ProfileScreen(
-      themeMode: widget.themeMode,
-      onThemeModeChanged: widget.onThemeModeChanged,);
+        themeMode: widget.themeMode,
+        onThemeModeChanged: widget.onThemeModeChanged,
+        textScale: widget.textScale,
+    onTextScaleChanged: widget.onTextScaleChanged,
+  );
     }
   }
 
@@ -532,7 +752,9 @@ class _HomeScreenState extends State<HomeScreen> {
               child: SizedBox(
                 width: 20,
                 height: 20,
-                child: CircularProgressIndicator(strokeWidth: 2),
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                ),
               ),
             )
           else

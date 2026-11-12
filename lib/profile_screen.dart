@@ -6,16 +6,21 @@ import 'push_notification_screen.dart';
 import 'reset_password_screen.dart';
 import 'services/settings_service.dart';
 import 'weekly_budget_screen.dart';
+import 'services/text_scale_service.dart';
 
 class ProfileScreen extends StatefulWidget {
-  const ProfileScreen({
+    const ProfileScreen({
     super.key,
     this.themeMode = ThemeMode.system,
     this.onThemeModeChanged,
+    this.textScale = 1.0,
+    this.onTextScaleChanged,
   });
 
   final ThemeMode themeMode;
   final ValueChanged<ThemeMode>? onThemeModeChanged;
+  final double textScale;
+  final ValueChanged<double>? onTextScaleChanged;
 
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
@@ -336,6 +341,49 @@ class _ProfileScreenState extends State<ProfileScreen> {
     ),
   );
 }
+
+Widget textSizeSetting() {
+  return settingCard(
+    icon: Icons.text_fields,
+    title: 'Text size',
+    description: 'Adjust the size of text throughout Faithful Pantry.',
+    action: Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text('Text size'),
+            Text('${(widget.textScale * 100).round()}%'),
+          ],
+        ),
+        Slider(
+          value: widget.textScale
+              .clamp(
+                TextScaleService.minScale,
+                TextScaleService.maxScale,
+              )
+              .toDouble(),
+          min: TextScaleService.minScale,
+          max: TextScaleService.maxScale,
+          divisions: 14,
+          label: '${(widget.textScale * 100).round()}%',
+          onChanged: widget.onTextScaleChanged,
+        ),
+        Align(
+          alignment: Alignment.centerRight,
+          child: TextButton(
+            onPressed: widget.onTextScaleChanged == null
+                ? null
+                : () => widget.onTextScaleChanged!(1.0),
+            child: const Text('Reset to default'),
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
   Widget budgetSetting() {
     return StreamBuilder<int?>(
       stream: budgetStream,
@@ -413,6 +461,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
             budgetSetting(),
             const SizedBox(height: 16),
             themeSetting(),
+            const SizedBox(height: 16),
+            textSizeSetting(),
             const SizedBox(height: 16),
            settingCard(
   icon: Icons.notifications_outlined,

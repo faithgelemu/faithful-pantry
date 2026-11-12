@@ -275,8 +275,7 @@ class _LabelOcrScreenState extends State<LabelOcrScreen> {
                 const SizedBox(height: 12),
                 Text(
                   'Choose or photograph a label, then crop around '
-                  'its printed date. Recognition runs in your browser; '
-                  'OCR library and language files require downloads.',
+                  'its printed date.',
                   style: TextStyle(
                     color: colorScheme.onSurfaceVariant,
                     height: 1.5,
