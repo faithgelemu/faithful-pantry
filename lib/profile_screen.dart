@@ -1,3 +1,4 @@
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
@@ -5,22 +6,26 @@ import 'preferred_name_screen.dart';
 import 'push_notification_screen.dart';
 import 'reset_password_screen.dart';
 import 'services/settings_service.dart';
-import 'weekly_budget_screen.dart';
 import 'services/text_scale_service.dart';
+import 'weekly_budget_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
-    const ProfileScreen({
+  const ProfileScreen({
     super.key,
     this.themeMode = ThemeMode.system,
     this.onThemeModeChanged,
     this.textScale = 1.0,
     this.onTextScaleChanged,
+    this.onSettingsApplied,
+    this.onSettingsCancelled,
   });
 
   final ThemeMode themeMode;
   final ValueChanged<ThemeMode>? onThemeModeChanged;
   final double textScale;
   final ValueChanged<double>? onTextScaleChanged;
+  final Future<bool> Function(ThemeMode, double)? onSettingsApplied;
+  final VoidCallback? onSettingsCancelled;
 
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
@@ -35,11 +40,47 @@ class _ProfileScreenState extends State<ProfileScreen> {
   bool isOpeningBudget = false;
   bool isOpeningName = false;
   bool isOpeningNotifications = false;
+  bool isSavingAppearance = false;
+
+  late ThemeMode _draftThemeMode;
+  late ThemeMode _savedThemeMode;
+
+  late double _draftTextScale;
+  late double _savedTextScale;
+
+  bool _hasEditedAppearance = false;
+
+  bool get _hasAppearanceChanges {
+    return _draftThemeMode != _savedThemeMode ||
+        _draftTextScale != _savedTextScale;
+  }
 
   @override
   void initState() {
     super.initState();
+
+    _draftThemeMode = widget.themeMode;
+    _savedThemeMode = widget.themeMode;
+
+    _draftTextScale = widget.textScale;
+    _savedTextScale = widget.textScale;
+
     loadSettings();
+  }
+
+  @override
+  void didUpdateWidget(covariant ProfileScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    // Accept externally loaded settings only when there are no
+    // un-applied changes being previewed.
+    if (!_hasEditedAppearance) {
+      _draftThemeMode = widget.themeMode;
+      _savedThemeMode = widget.themeMode;
+
+      _draftTextScale = widget.textScale;
+      _savedTextScale = widget.textScale;
+    }
   }
 
   void loadSettings() {
@@ -58,6 +99,94 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   String money(int pence) {
     return '£${(pence / 100).toStringAsFixed(2)}';
+  }
+
+  void _previewTheme(ThemeMode? newMode) {
+    if (newMode == null) return;
+
+    setState(() {
+      _draftThemeMode = newMode;
+      _hasEditedAppearance = true;
+    });
+
+    widget.onThemeModeChanged?.call(newMode);
+  }
+
+  void _previewTextScale(double newScale) {
+    setState(() {
+      _draftTextScale = newScale;
+      _hasEditedAppearance = true;
+    });
+
+    widget.onTextScaleChanged?.call(newScale);
+  }
+
+  Future<void> _applyAppearance() async {
+    if (isSavingAppearance || !_hasAppearanceChanges) return;
+
+    final applySettings = widget.onSettingsApplied;
+
+    if (applySettings == null) return;
+
+    setState(() {
+      isSavingAppearance = true;
+    });
+
+    try {
+      final success = await applySettings(
+        _draftThemeMode,
+        _draftTextScale,
+      );
+
+      if (!mounted) return;
+
+      if (success) {
+        setState(() {
+          _savedThemeMode = _draftThemeMode;
+          _savedTextScale = _draftTextScale;
+          _hasEditedAppearance = false;
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Appearance settings saved.'),
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Unable to save appearance settings. '
+              'Your previous settings have been restored.',
+            ),
+          ),
+        );
+
+        _cancelAppearance();
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          isSavingAppearance = false;
+        });
+      }
+    }
+  }
+
+  void _cancelAppearance() {
+    if (isSavingAppearance) return;
+
+    widget.onSettingsCancelled?.call();
+
+    setState(() {
+      _draftThemeMode = _savedThemeMode;
+      _draftTextScale = _savedTextScale;
+      _hasEditedAppearance = false;
+    });
+  }
+
+  void _resetTextScale() {
+    _previewTextScale(TextScaleService.defaultScale);
   }
 
   Future<void> openName(String? currentName) async {
@@ -218,9 +347,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
               ] else
                 FilledButton.icon(
-                  onPressed: isOpeningName
-                      ? null
-                      : () => openName(name),
+                  onPressed: isOpeningName ? null : () => openName(name),
                   style: FilledButton.styleFrom(
                     backgroundColor: const Color(0xFFE5F6BD),
                     foregroundColor: const Color(0xFF123C25),
@@ -282,11 +409,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                       const SizedBox(height: 6),
                       Text(
-                      description,
-                      style: TextStyle(
-                      color: colorScheme.onSurfaceVariant,
-                      height: 1.5,
-                      ),
+                        description,
+                        style: TextStyle(
+                          color: colorScheme.onSurfaceVariant,
+                          height: 1.5,
+                        ),
                       ),
                     ],
                   ),
@@ -302,87 +429,128 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget themeSetting() {
-  return settingCard(
-    icon: Icons.palette_outlined,
-    title: 'Appearance',
-    description:
-        'Choose how Faithful Pantry looks on your device.',
-    action: InputDecorator(
-      decoration: const InputDecoration(
-        labelText: 'Theme preference',
-      ),
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<ThemeMode>(
-          isExpanded: true,
-          value: widget.themeMode,
-          items: const [
-            DropdownMenuItem(
-              value: ThemeMode.system,
-              child: Text('System default'),
-            ),
-            DropdownMenuItem(
-              value: ThemeMode.light,
-              child: Text('Light mode'),
-            ),
-            DropdownMenuItem(
-              value: ThemeMode.dark,
-              child: Text('Dark mode'),
-            ),
-          ],
-          onChanged: widget.onThemeModeChanged == null
-              ? null
-              : (ThemeMode? newMode) {
-                  if (newMode != null) {
-                    widget.onThemeModeChanged!(newMode);
-                  }
-                },
+    return settingCard(
+      icon: Icons.palette_outlined,
+      title: 'Appearance',
+      description: 'Choose how Faithful Pantry looks on your device.',
+      action: InputDecorator(
+        decoration: const InputDecoration(
+          labelText: 'Theme preference',
         ),
-      ),
-    ),
-  );
-}
-
-Widget textSizeSetting() {
-  return settingCard(
-    icon: Icons.text_fields,
-    title: 'Text size',
-    description: 'Adjust the size of text throughout Faithful Pantry.',
-    action: Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            const Text('Text size'),
-            Text('${(widget.textScale * 100).round()}%'),
-          ],
-        ),
-        Slider(
-          value: widget.textScale
-              .clamp(
-                TextScaleService.minScale,
-                TextScaleService.maxScale,
-              )
-              .toDouble(),
-          min: TextScaleService.minScale,
-          max: TextScaleService.maxScale,
-          divisions: 14,
-          label: '${(widget.textScale * 100).round()}%',
-          onChanged: widget.onTextScaleChanged,
-        ),
-        Align(
-          alignment: Alignment.centerRight,
-          child: TextButton(
-            onPressed: widget.onTextScaleChanged == null
-                ? null
-                : () => widget.onTextScaleChanged!(1.0),
-            child: const Text('Reset to default'),
+        child: DropdownButtonHideUnderline(
+          child: DropdownButton<ThemeMode>(
+            isExpanded: true,
+            value: _draftThemeMode,
+            items: const [
+              DropdownMenuItem(
+                value: ThemeMode.system,
+                child: Text('System default'),
+              ),
+              DropdownMenuItem(
+                value: ThemeMode.light,
+                child: Text('Light mode'),
+              ),
+              DropdownMenuItem(
+                value: ThemeMode.dark,
+                child: Text('Dark mode'),
+              ),
+            ],
+            onChanged: isSavingAppearance ? null : _previewTheme,
           ),
         ),
-      ],
-    ),
-  );
-}
+      ),
+    );
+  }
+
+  Widget textSizeSetting() {
+    return settingCard(
+      icon: Icons.text_fields,
+      title: 'Text size',
+      description: 'Adjust the size of text throughout Faithful Pantry.',
+      action: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text('Text size'),
+              Text('${(_draftTextScale * 100).round()}%'),
+            ],
+          ),
+          Slider(
+            value: _draftTextScale
+                .clamp(
+                  TextScaleService.minScale,
+                  TextScaleService.maxScale,
+                )
+                .toDouble(),
+            min: TextScaleService.minScale,
+            max: TextScaleService.maxScale,
+            divisions: 14,
+            label: '${(_draftTextScale * 100).round()}%',
+            onChanged: isSavingAppearance ? null : _previewTextScale,
+          ),
+          Align(
+            alignment: Alignment.centerRight,
+            child: TextButton(
+              onPressed: isSavingAppearance ? null : _resetTextScale,
+              child: const Text('Reset to default'),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget appearanceActions() {
+    if (!_hasAppearanceChanges) {
+      return const SizedBox.shrink();
+    }
+
+    return Card(
+      margin: EdgeInsets.zero,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const Text(
+              'You have unsaved appearance changes.',
+              style: TextStyle(fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed:
+                        isSavingAppearance ? null : _cancelAppearance,
+                    child: const Text('Cancel'),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: FilledButton(
+                    onPressed:
+                        isSavingAppearance ? null : _applyAppearance,
+                    child: isSavingAppearance
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                            ),
+                          )
+                        : const Text('Apply'),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
   Widget budgetSetting() {
     return StreamBuilder<int?>(
@@ -419,9 +587,8 @@ Widget textSizeSetting() {
               : '${money(budgetPence)} per week · '
                   'Shared with Home and Budget.',
           action: OutlinedButton.icon(
-            onPressed: isOpeningBudget
-                ? null
-                : () => openBudget(budgetPence),
+            onPressed:
+                isOpeningBudget ? null : () => openBudget(budgetPence),
             icon: const Icon(Icons.edit_outlined),
             label: Text(
               budgetPence == null ? 'Set budget' : 'Edit budget',
@@ -464,20 +631,22 @@ Widget textSizeSetting() {
             const SizedBox(height: 16),
             textSizeSetting(),
             const SizedBox(height: 16),
-           settingCard(
-  icon: Icons.notifications_outlined,
-  title: 'Expiry reminders',
-  description:
-      'Get optional daily reminders for groceries '
-      'approaching their recorded expiry dates.',
-  action: OutlinedButton.icon(
-    onPressed: isOpeningNotifications
-        ? null
-        : openNotifications,
-    icon: const Icon(Icons.notifications_active_outlined),
-    label: const Text('Manage reminders'),
-  ),
-),
+            appearanceActions(),
+            const SizedBox(height: 16),
+            settingCard(
+              icon: Icons.notifications_outlined,
+              title: 'Expiry reminders',
+              description:
+                  'Get optional daily reminders for groceries '
+                  'approaching their recorded expiry dates.',
+              action: OutlinedButton.icon(
+                onPressed: isOpeningNotifications
+                    ? null
+                    : openNotifications,
+                icon: const Icon(Icons.notifications_active_outlined),
+                label: const Text('Manage reminders'),
+              ),
+            ),
             const SizedBox(height: 16),
             settingCard(
               icon: Icons.lock_outline,
@@ -501,13 +670,13 @@ Widget textSizeSetting() {
             ),
             const SizedBox(height: 20),
             Text(
-            'To sign out, use Log out at the top right.',
-            style: TextStyle(
-            fontSize: 13,
-            height: 1.5,
-            color: Theme.of(context).colorScheme.onSurfaceVariant,
+              'To sign out, use Log out at the top right.',
+              style: TextStyle(
+                fontSize: 13,
+                height: 1.5,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
             ),
-        ),
           ],
         ),
       ),

@@ -34,14 +34,16 @@ class FaithfulPantryApp extends StatefulWidget {
 
 class _FaithfulPantryAppState extends State<FaithfulPantryApp> {
   late final Stream<User?> _authStateChanges =
-  FirebaseAuth.instance.authStateChanges();
+      FirebaseAuth.instance.authStateChanges();
+
   final ThemeService _themeService = ThemeService();
+  final TextScaleService _textScaleService = TextScaleService();
 
   ThemeMode _themeMode = ThemeMode.system;
+  ThemeMode _savedThemeMode = ThemeMode.system;
 
-    final TextScaleService _textScaleService = TextScaleService();
-
-    double _textScale = TextScaleService.defaultScale;
+  double _textScale = TextScaleService.defaultScale;
+  double _savedTextScale = TextScaleService.defaultScale;
 
   @override
   void initState() {
@@ -58,6 +60,7 @@ class _FaithfulPantryAppState extends State<FaithfulPantryApp> {
 
       setState(() {
         _themeMode = savedTheme;
+        _savedThemeMode = savedTheme;
       });
     } catch (error) {
       debugPrint('Unable to load theme preference: $error');
@@ -65,45 +68,80 @@ class _FaithfulPantryAppState extends State<FaithfulPantryApp> {
   }
 
   Future<void> _loadTextScale() async {
-  try {
-    final savedScale = await _textScaleService.loadTextScale();
+    try {
+      final savedScale = await _textScaleService.loadTextScale();
 
-    if (!mounted) return;
+      if (!mounted) return;
+
+      setState(() {
+        _textScale = savedScale;
+        _savedTextScale = savedScale;
+      });
+    } catch (error) {
+      debugPrint('Unable to load text size preference: $error');
+    }
+  }
+
+  // Preview only. Nothing is saved at this stage.
+  void _changeTextScale(double newScale) {
+    if (_textScale == newScale) return;
 
     setState(() {
-      _textScale = savedScale;
+      _textScale = newScale;
     });
-  } catch (error) {
-    debugPrint('Unable to load text size preference: $error');
   }
-}
 
-Future<void> _changeTextScale(double newScale) async {
-  if (_textScale == newScale) return;
-
-  setState(() {
-    _textScale = newScale;
-  });
-
-  try {
-    await _textScaleService.saveTextScale(newScale);
-  } catch (error) {
-    debugPrint('Unable to save text size preference: $error');
-  }
-}
-
-  Future<void> _changeThemeMode(ThemeMode newMode) async {
+  // Preview only. Nothing is saved at this stage.
+  void _changeThemeMode(ThemeMode newMode) {
     if (_themeMode == newMode) return;
 
     setState(() {
       _themeMode = newMode;
     });
+  }
 
+  // Save both settings when the user presses Apply.
+  Future<bool> _applySettings(
+    ThemeMode newMode,
+    double newScale,
+  ) async {
     try {
       await _themeService.saveThemeMode(newMode);
+      await _textScaleService.saveTextScale(newScale);
+
+      if (!mounted) return false;
+
+      setState(() {
+        _themeMode = newMode;
+        _savedThemeMode = newMode;
+        _textScale = newScale;
+        _savedTextScale = newScale;
+      });
+
+      return true;
     } catch (error) {
-      debugPrint('Unable to save theme preference: $error');
+      debugPrint('Unable to save appearance settings: $error');
+
+      // Attempt to restore the previously saved preferences.
+      try {
+        await _themeService.saveThemeMode(_savedThemeMode);
+        await _textScaleService.saveTextScale(_savedTextScale);
+      } catch (restoreError) {
+        debugPrint('Unable to restore appearance settings: $restoreError');
+      }
+
+      return false;
     }
+  }
+
+  // Restore the last saved settings when the user cancels.
+  void _cancelSettings() {
+    if (!mounted) return;
+
+    setState(() {
+      _themeMode = _savedThemeMode;
+      _textScale = _savedTextScale;
+    });
   }
 
   @override
@@ -118,7 +156,6 @@ Future<void> _changeTextScale(double newScale) async {
         useMaterial3: true,
         fontFamily: 'NunitoSans',
         scaffoldBackgroundColor: const Color(0xFFF8FAF5),
-
         colorScheme: ColorScheme.fromSeed(
           seedColor: const Color(0xFF1DB954),
           brightness: Brightness.light,
@@ -134,13 +171,11 @@ Future<void> _changeTextScale(double newScale) async {
           outline: const Color(0xFF738574),
           outlineVariant: const Color(0xFFDCE7D8),
         ),
-
         textTheme: ThemeData.light().textTheme.apply(
-              fontFamily: 'NunitoSans',
-              bodyColor: const Color(0xFF20382B),
-              displayColor: const Color(0xFF123C25),
-            ),
-
+          fontFamily: 'NunitoSans',
+          bodyColor: const Color(0xFF20382B),
+          displayColor: const Color(0xFF123C25),
+        ),
         appBarTheme: const AppBarTheme(
           backgroundColor: Color(0xFFF8FAF5),
           foregroundColor: Color(0xFF123C25),
@@ -155,19 +190,15 @@ Future<void> _changeTextScale(double newScale) async {
             color: Color(0xFF123C25),
           ),
         ),
-
         cardTheme: CardThemeData(
           color: Colors.white,
           surfaceTintColor: Colors.transparent,
           elevation: 0,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
-            side: const BorderSide(
-              color: Color(0xFFDCE7D8),
-            ),
+            side: const BorderSide(color: Color(0xFFDCE7D8)),
           ),
         ),
-
         inputDecorationTheme: InputDecorationTheme(
           filled: true,
           fillColor: Colors.white,
@@ -180,9 +211,7 @@ Future<void> _changeTextScale(double newScale) async {
           ),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(14),
-            borderSide: const BorderSide(
-              color: Color(0xFF738574),
-            ),
+            borderSide: const BorderSide(color: Color(0xFF738574)),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(14),
@@ -192,7 +221,6 @@ Future<void> _changeTextScale(double newScale) async {
             ),
           ),
         ),
-
         filledButtonTheme: FilledButtonThemeData(
           style: FilledButton.styleFrom(
             minimumSize: const Size(48, 50),
@@ -210,7 +238,6 @@ Future<void> _changeTextScale(double newScale) async {
             ),
           ),
         ),
-
         outlinedButtonTheme: OutlinedButtonThemeData(
           style: OutlinedButton.styleFrom(
             minimumSize: const Size(48, 48),
@@ -228,7 +255,6 @@ Future<void> _changeTextScale(double newScale) async {
             ),
           ),
         ),
-
         textButtonTheme: TextButtonThemeData(
           style: TextButton.styleFrom(
             minimumSize: const Size(48, 48),
@@ -258,42 +284,31 @@ Future<void> _changeTextScale(double newScale) async {
       darkTheme: ThemeData(
         useMaterial3: true,
         fontFamily: 'NunitoSans',
-
         colorScheme: const ColorScheme.dark(
           primary: Color(0xFF8FE3A8),
           onPrimary: Color(0xFF12351D),
-
           primaryContainer: Color(0xFF285638),
           onPrimaryContainer: Color(0xFFDDF5DF),
-
           secondary: Color(0xFFB5EFC5),
           onSecondary: Color(0xFF153820),
-
           tertiary: Color(0xFFFFC078),
           onTertiary: Color(0xFF402600),
-
           surface: Color(0xFF18251D),
           onSurface: Color(0xFFF5F8F5),
-
           surfaceContainerLowest: Color(0xFF101A14),
           surfaceContainerLow: Color(0xFF1D2B22),
           surfaceContainer: Color(0xFF223128),
           surfaceContainerHigh: Color(0xFF25362A),
           surfaceContainerHighest: Color(0xFF2C3D31),
-
           onSurfaceVariant: Color(0xFFCDD9CF),
-
           outline: Color(0xFF819487),
           outlineVariant: Color(0xFF3B4B40),
-
           error: Color(0xFFFFB4AB),
           onError: Color(0xFF690005),
           errorContainer: Color(0xFF93000A),
           onErrorContainer: Color(0xFFFFDAD6),
         ),
-
         scaffoldBackgroundColor: const Color(0xFF101A14),
-
         textTheme: const TextTheme(
           displayLarge: TextStyle(
             color: Color(0xFFFFFFFF),
@@ -344,7 +359,6 @@ Future<void> _changeTextScale(double newScale) async {
             fontWeight: FontWeight.w600,
           ),
         ),
-
         appBarTheme: const AppBarTheme(
           backgroundColor: Color(0xFF101A14),
           foregroundColor: Color(0xFFF5F8F5),
@@ -359,19 +373,15 @@ Future<void> _changeTextScale(double newScale) async {
             color: Color(0xFFF5F8F5),
           ),
         ),
-
         cardTheme: CardThemeData(
           color: const Color(0xFF1D2B22),
           surfaceTintColor: Colors.transparent,
           elevation: 0,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
-            side: const BorderSide(
-              color: Color(0xFF3B4B40),
-            ),
+            side: const BorderSide(color: Color(0xFF3B4B40)),
           ),
         ),
-
         inputDecorationTheme: InputDecorationTheme(
           filled: true,
           fillColor: const Color(0xFF1D2B22),
@@ -384,9 +394,7 @@ Future<void> _changeTextScale(double newScale) async {
           ),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(14),
-            borderSide: const BorderSide(
-              color: Color(0xFF536458),
-            ),
+            borderSide: const BorderSide(color: Color(0xFF536458)),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(14),
@@ -396,7 +404,6 @@ Future<void> _changeTextScale(double newScale) async {
             ),
           ),
         ),
-
         filledButtonTheme: FilledButtonThemeData(
           style: FilledButton.styleFrom(
             minimumSize: const Size(48, 50),
@@ -414,7 +421,6 @@ Future<void> _changeTextScale(double newScale) async {
             ),
           ),
         ),
-
         outlinedButtonTheme: OutlinedButtonThemeData(
           style: OutlinedButton.styleFrom(
             minimumSize: const Size(48, 48),
@@ -423,9 +429,7 @@ Future<void> _changeTextScale(double newScale) async {
               vertical: 12,
             ),
             foregroundColor: const Color(0xFF8FE3A8),
-            side: const BorderSide(
-              color: Color(0xFF819487),
-            ),
+            side: const BorderSide(color: Color(0xFF819487)),
             textStyle: const TextStyle(
               fontFamily: 'NunitoSans',
               fontSize: 15,
@@ -436,7 +440,6 @@ Future<void> _changeTextScale(double newScale) async {
             ),
           ),
         ),
-
         textButtonTheme: TextButtonThemeData(
           style: TextButton.styleFrom(
             minimumSize: const Size(48, 48),
@@ -448,7 +451,6 @@ Future<void> _changeTextScale(double newScale) async {
             ),
           ),
         ),
-
         navigationBarTheme: const NavigationBarThemeData(
           backgroundColor: Color(0xFF18251D),
           surfaceTintColor: Colors.transparent,
@@ -481,9 +483,7 @@ Future<void> _changeTextScale(double newScale) async {
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Scaffold(
-              body: Center(
-                child: CircularProgressIndicator(),
-              ),
+              body: Center(child: CircularProgressIndicator()),
             );
           }
 
@@ -514,6 +514,8 @@ Future<void> _changeTextScale(double newScale) async {
                 onThemeModeChanged: _changeThemeMode,
                 textScale: _textScale,
                 onTextScaleChanged: _changeTextScale,
+                onSettingsApplied: _applySettings,
+                onSettingsCancelled: _cancelSettings,
               ),
             );
           }
@@ -540,6 +542,8 @@ class HomeScreen extends StatefulWidget {
     this.onThemeModeChanged,
     this.textScale = TextScaleService.defaultScale,
     this.onTextScaleChanged,
+    this.onSettingsApplied,
+    this.onSettingsCancelled,
   });
 
   final List<Widget>? testPages;
@@ -555,6 +559,8 @@ class HomeScreen extends StatefulWidget {
   final ValueChanged<ThemeMode>? onThemeModeChanged;
   final double textScale;
   final ValueChanged<double>? onTextScaleChanged;
+  final Future<bool> Function(ThemeMode, double)? onSettingsApplied;
+  final VoidCallback? onSettingsCancelled;
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -607,7 +613,11 @@ class _HomeScreenState extends State<HomeScreen> {
   void selectTab(int index) {
     if (isLoggingOut) return;
 
-    // Leaving a detail view returns Home to its dashboard.
+    // Cancel un-applied appearance changes when leaving Profile.
+    if (selectedTab == 3 && index != 3) {
+      widget.onSettingsCancelled?.call();
+    }
+
     closeHomeDetail();
 
     setState(() {
@@ -626,7 +636,6 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget get currentPage {
-    // Use the real Home navigation with optional test content.
     if (selectedTab == 0) {
       final detail = homeDetail;
 
@@ -678,12 +687,14 @@ class _HomeScreenState extends State<HomeScreen> {
       case 2:
         return const BudgetScreen();
       default:
-      return ProfileScreen(
-        themeMode: widget.themeMode,
-        onThemeModeChanged: widget.onThemeModeChanged,
-        textScale: widget.textScale,
-    onTextScaleChanged: widget.onTextScaleChanged,
-  );
+        return ProfileScreen(
+          themeMode: widget.themeMode,
+          onThemeModeChanged: widget.onThemeModeChanged,
+          textScale: widget.textScale,
+          onTextScaleChanged: widget.onTextScaleChanged,
+          onSettingsApplied: widget.onSettingsApplied,
+          onSettingsCancelled: widget.onSettingsCancelled,
+        );
     }
   }
 
@@ -697,6 +708,8 @@ class _HomeScreenState extends State<HomeScreen> {
     var notificationCleanupFinished = false;
 
     try {
+      widget.onSettingsCancelled?.call();
+
       await PushNotificationService().prepareForLogout();
       notificationCleanupFinished = true;
 
@@ -752,9 +765,7 @@ class _HomeScreenState extends State<HomeScreen> {
               child: SizedBox(
                 width: 20,
                 height: 20,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                ),
+                child: CircularProgressIndicator(strokeWidth: 2),
               ),
             )
           else
