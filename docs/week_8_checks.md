@@ -30,11 +30,15 @@ The local server must remain running for these checks.
 
 ## Remaining checks
 
-- Hosted HTTPS deployment and installation.
-- Another browser and a real mobile device.
-- Connection-loss and recovery behaviour in the release build.
-- App update behaviour.
-- Keyboard, zoom and reduced-motion checks after the redesign.
+## Remaining checks
+
+The following areas have not been fully verified:
+
+- Android Chrome and other untested device/browser combinations.
+- Offline editing and access to cloud data.
+- Offline OCR and external resource availability.
+
+The recorded checks cover the browsers and devices listed above. They do not establish compatibility with every browser or device.
 
 ## Development interruption
 
